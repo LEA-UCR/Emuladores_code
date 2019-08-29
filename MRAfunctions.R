@@ -1,5 +1,10 @@
 source('MRAhelpfunctions.R')
 
+partition.2D <- function(J,domain,locs,z,predvec=NULL,placement='regular'){
+
+}
+
+
 #######  partitioning et al for one-dimensional domains
 
 partition.1D=function(J,M,r=ceiling(length(z)/J^M),domain,locs,z,predlocs.vec=FALSE,placement='regular') {
