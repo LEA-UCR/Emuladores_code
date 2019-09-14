@@ -6,14 +6,14 @@ library(plotly)
 
 set.seed(1)
 
-load("./datos/resolucion/coordinates.Rdata")
-load("./datos/resolucion/domainfinal.Rdata")
+load("../resolucion/coordinates.Rdata")
+load("../resolucion/domainfinal.Rdata")
 
 ## Cut a window:
 # 230 a 300 y de 30 a 60
 
 global<-final[final$lonval>240 &final$lonval<290
-    & final$latval>30 & final$latval<60,c("lonval","latval")]
+              & final$latval>30 & final$latval<60,c("lonval","latval")]
 regional<-t(aa)[t(aa)[,1]>30&t(aa)[,1]<60
                 &t(aa)[,2]>240&t(aa)[,2]<290,2:1]
 plot(global, cex=0.01)
@@ -40,13 +40,13 @@ rMatern <- function(n, coords, kappa, variance, nu=1) {
 beta1s <- rMatern(ncov, regional, kappa, sigma2)
 
 ## simulate the covariate values (equal values for same quadrant)
-
-hh<-SpatialPointsDataFrame(global, data.frame(ID=1:dim(global)[1], 
-                                        y=runif(N*k)))
+hh<-SpatialPointsDataFrame(global, data.frame(ID=1:dim(global)[1],
+                                              y=runif(N*k)))
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 regionalpoints <- SpatialPoints(regional)
 globalpoints <- SpatialPoints(global)
 proj4string(regionalpoints) <- '+proj=longlat +datum=WGS84'
+proj4string(globalpoints) <- '+proj=longlat +datum=WGS84'
 
 hh2<-gBuffer(hh, width=0.7, quadsegs=1, capStyle='SQUARE', byid=T)
 plot(hh2, add=TRUE,col="red")
@@ -55,7 +55,7 @@ points(globalpoints, cex=0.5, col="blue")
 
 ## match regional with global
 aa <- over(regionalpoints, geometry(hh2), 
-                                 returnList = TRUE)
+           returnList = TRUE)
 coo<-cbind(regional,global[unlist(aa),], unlist(aa))
 plot(coo[,1:2], cex=0.01,col=coo[,5])
 points(coo[,3:4],cex=0.01)
@@ -70,7 +70,6 @@ y <- beta0+(beta1+beta1s)*hh4+error ##Simulate the observations
 
 ### y is the response variable with regional resolution
 ### hh4 are     the xs with global resolution
-
 dataset<-tibble(coo,resp=y,covariate=hh4)
 
 ggplot(data = dataset, mapping = aes(x = coo$lonreg,
@@ -86,99 +85,91 @@ ggplot(data = dataset, mapping = aes(x = coo$lonreg,
   geom_tile(size=2, alpha=0.4) + theme_bw() +
   scale_color_continuous(low="blue", high="yellow") +
   ylab("latitude") + xlab("longitude") 
-
-plot(dataset$covariate,dataset$resp, ylab="Response", xlab="Covariate")
+#plot(dataset$covariate,dataset$resp, ylab="Response", xlab="Covariate")
 
 ### Use MRA to analyze this dataset:
-
-source('MRAfunctions.R')
+#source('MRAfunctions.R')
 library(sf)
 library(raster)
-library(SpaDES)
 
-
-
-#gridglobal <- st_as_sf(hh2,crs=4326)
-#st_crs(gridglobal)
-#gridraster <- raster(hh2,vals=hh2$y,nrows=22,ncols=36)
-
-#id.cell <- extract(gridraster,regionalpoints, cellnumbers=TRUE) 
-#rowColFromCell(gridraster, id.cell[,1])
-
-#gridraster2 <- splitRaster(gridraster,nx = 2,ny = 2)
-
-##Determinacion de indices globales y regionales para cada particion
-indicesglobal <- list()
-indicesregional <- list()
-cellsloc.global <- list()
-cellsloc.regional <- list()
+# create a raster with the points and a data table:
 
 bordes <- bbox(hh2)
 crsglobal <- CRS('+proj=longlat +datum=WGS84')
-globalraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],ymx=bordes[4],
-                       val=1,crs=crsglobal,ncols=1,nrows=1)
 
-indicesglobal[[1]] <- extract(globalraster,globalpoints, cellnumbers=TRUE)[,1]
-cellsloc.global[[1]] <- rowColFromCell(globalraster,indicesglobal[[1]])
-indicesregional[[1]] <- extract(globalraster,regionalpoints, cellnumbers=TRUE)[,1]
-cellsloc.regional[[1]] <- rowColFromCell(globalraster,indicesregional[[1]])
+### Aquí pueden cambiarse las particiones dependiendo del problema.
+partitions <- list(1,c(1:4),seq(1,2*2*2*11), 
+                   seq(1,2*2*3*2*11), 
+                   seq(1,2*2*3*3*2*11))
+length(partitions) # how many levels
+nc <- list(1, 2, 2*2,  2*2*3, 2*2*3*3)
+nr <- list(1, 2, 2*11, 2*11,  2*11)
 
-plot(globalraster)
-plot(rasterToPolygons(globalraster),add=T)
+indicesglob  <- list()
+indicesreg   <- list()
+cellloc.glob <- list()
+cellloc.reg  <- list()
 
-globalraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],ymx=bordes[4],
-                        val=1:4,crs=crsglobal,ncols=2,nrows=2)
+# ¿Cuántas veces queremos partir el dominio y cuál es el borde?
+nn <- length(nc)
+temp <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
+               ymx=bordes[4],val=1,
+               crs=crsglobal,ncols=1,nrows=1)
 
-indicesglobal[[2]] <- extract(globalraster,globalpoints, cellnumbers=TRUE)[,1]
-cellsloc.global[[2]] <- rowColFromCell(globalraster,indicesglobal[[2]])
-indicesregional[[2]] <- extract(globalraster,regionalpoints, cellnumbers=TRUE)[,1]
-cellsloc.regional[[2]] <- rowColFromCell(globalraster,indicesregional[[2]])
+for(i in 1:nn){
+globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
+                       ymx=bordes[4],val=partitions[[i]],
+                       crs=crsglobal,ncols=nc[[i]],nrows=nr[[i]])
+  
+indicesglob[[i]]    <- extract(globraster,globalpoints, cellnumbers=TRUE)[,1]
+cellloc.glob[[i]]   <- rowColFromCell(globraster,indicesglob[[i]])
+indicesreg[[i]]     <- extract(globraster,regionalpoints, cellnumbers=TRUE)[,1]
+cellloc.reg[[i]]    <- rowColFromCell(globraster,indicesreg[[i]])
 
-plot(globalraster)
-plot(rasterToPolygons(globalraster),add=T)
+plot(globraster)
+plot(rasterToPolygons(globraster),add=T)
+}
 
-globalraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],ymx=bordes[4],
-                        val=seq(1,2*2*2*11),crs=crsglobal,ncols=2*2,nrows=2*11)
+# table for regional indices:
+indicesreg   <- data.frame(matrix(unlist(indicesreg), ncol=nn,
+                        nrow=length(indicesreg[[1]])))
+names(indicesreg) <- as.character(unlist(lapply(1:nn,
+                                  function(i)paste0("iP",i))))
 
-indicesglobal[[3]] <- extract(globalraster,globalpoints, cellnumbers=TRUE)[,1]
-cellsloc.global[[3]] <- rowColFromCell(globalraster,indicesglobal[[3]])
-indicesregional[[3]] <- extract(globalraster,regionalpoints, cellnumbers=TRUE)[,1]
-cellsloc.regional[[3]] <- rowColFromCell(globalraster,indicesregional[[3]])
+all <- cbind(dataset, indicesreg)
 
-plot(globalraster)
-plot(rasterToPolygons(globalraster),add=T)
+str(all)
 
-
-globalraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],ymx=bordes[4],
-                        val=seq(1,2*2*3*2*11),crs=crsglobal,ncols=2*2*3,nrows=2*11)
-
-indicesglobal[[4]] <- extract(globalraster,globalpoints, cellnumbers=TRUE)[,1]
-cellsloc.global[[4]] <- rowColFromCell(globalraster,indicesglobal[[4]])
-indicesregional[[4]] <- extract(globalraster,regionalpoints, cellnumbers=TRUE)[,1]
-cellsloc.regional[[4]] <- rowColFromCell(globalraster,indicesregional[[4]])
-
-plot(globalraster)
-plot(rasterToPolygons(globalraster),add=T)
-
-globalraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],ymx=bordes[4],
-                        val=seq(1,2*2*3*3*2*11),crs=crsglobal,ncols=2*2*3*3,nrows=2*11)
-
-indicesglobal[[5]] <- extract(globalraster,globalpoints, cellnumbers=TRUE)[,1]
-cellsloc.global[[5]] <- rowColFromCell(globalraster,indicesglobal[[5]])
-indicesregional[[5]] <- extract(globalraster,regionalpoints, cellnumbers=TRUE)[,1]
-cellsloc.regional[[5]] <- rowColFromCell(globalraster,indicesregional[[5]])
+cbind(all$coo$IDglo, all$iP5)
 
 
-plot(globalraster)
-plot(rasterToPolygons(globalraster),add=T)
+regionalpoints <- SpatialPointsDataFrame(cbind(all$coo$lonreg, 
+                                               all$coo$latreg), 
+                           as.data.frame(cbind(
+                             longlo= all$coo$longlo,
+                             latglo= all$coo$latglo,
+                             IDglo = all$coo$IDglo,
+                             Yresp = all$resp,
+                             Xcov  = all$covariate,
+                             iP1   = all$iP1,
+                             iP2   = all$iP2,
+                             iP3   = all$iP3,
+                             iP4   = all$iP4,
+                             iP5   = all$iP5)),
+                  proj4string = CRS('+proj=longlat +datum=WGS84'),
+                  bbox = bordes)
+
+regionalpoints = st_as_sf(regionalpoints)
+plot(regionalpoints)
+plot(regionalpoints %>% filter(iP3==1) )
+
+## Aquí es donde se puede hacer la aplicación para cada nivel y partición
+
+library(purrr)
+regionalpoints %>%
+  split(.$iP4) %>%
+  map(summary) 
 
 
-
-# cov.mats=vector("list",M+1)
-#for(m in 0:M){
-#  cov.mats[[m+1]]=MRA.illus(NA,cov.fun,part.illus$data,part.illus$knots,part.illus$indices,M.cov.plot=m)[[2]]
-#}
-#u=10; xgrid=(1:(u*n.all))/(n.all*u); part.illus=partition.1D(J,M,r,domain,xgrid,1:(n.all*u))
-#bfs=MRA.illus(NA,cov.fun,part.illus$data,part.illus$knots,part.illus$indices)[[1]]
 
 
