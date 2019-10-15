@@ -3,11 +3,14 @@ library(dplyr)
 library(sf)
 library(rgeos)
 library(plotly)
+library(lwgeom)
+library(pdist)
+library(stringr)
 
 set.seed(1)
 
-load("../resolucion/coordinates.Rdata")
-load("../resolucion/domainfinal.Rdata")
+load("datos/resolucion/coordinates.Rdata")
+load("datos/resolucion/domainfinal.Rdata")
 
 ## Cut a window:
 # 230 a 300 y de 30 a 60
@@ -104,11 +107,17 @@ partitions <- list(1,c(1:4),seq(1,2*2*2*11),
 length(partitions) # how many levels
 nc <- list(1, 2, 2*2,  2*2*3, 2*2*3*3)
 nr <- list(1, 2, 2*11, 2*11,  2*11)
+nc_n <- c(1,2,2,3,3) #c(2,2,3,3)
+nr_n <- c(1,2,11,1,1) #c(2,11,1,1)
+
+
 
 indicesglob  <- list()
 indicesreg   <- list()
 cellloc.glob <- list()
 cellloc.reg  <- list()
+indicesglobK  <- list()
+indicesregK   <- list()
 
 # ¿Cuántas veces queremos partir el dominio y cuál es el borde?
 nn <- length(nc)
@@ -123,20 +132,44 @@ globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
   
 indicesglob[[i]]    <- extract(globraster,globalpoints, cellnumbers=TRUE)[,1]
 cellloc.glob[[i]]   <- rowColFromCell(globraster,indicesglob[[i]])
+
+
 indicesreg[[i]]     <- extract(globraster,regionalpoints, cellnumbers=TRUE)[,1]
 cellloc.reg[[i]]    <- rowColFromCell(globraster,indicesreg[[i]])
 
-plot(globraster)
-plot(rasterToPolygons(globraster),add=T)
+indicesglobtemp <- as.data.frame(cellloc.glob[[i]]) %>% 
+  mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
+  mutate(rown=ifelse(rown==0,nr_n[i],rown),
+         coln=ifelse(coln==0,nc_n[i],coln))
+
+indicesregtemp <- as.data.frame(cellloc.reg[[i]]) %>% 
+  mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
+  mutate(rown=ifelse(rown==0,nr_n[i],rown),
+         coln=ifelse(coln==0,nc_n[i],coln))
+
+indexmatrix <- as.data.frame(expand.grid(1:nr_n[i],1:nc_n[i]))
+indexmatrix <- indexmatrix %>% dplyr::select(rown=Var1,coln=Var2)%>%
+  mutate(celln=1:(nr_n[i]*nc_n[i]))
+
+indicesglobK[[i]] <- as.numeric((indicesglobtemp %>% left_join(indexmatrix,by = c('rown','coln')) %>%
+  dplyr::select(celln))$celln)
+indicesregK[[i]] <- as.numeric((indicesregtemp %>% left_join(indexmatrix,by = c('rown','coln')) %>%
+  dplyr::select(celln))$celln)
+
+
+#plot(globraster)
+#plot(rasterToPolygons(globraster),add=T)
 }
 
+
+
 # table for regional indices:
-indicesreg   <- data.frame(matrix(unlist(indicesreg), ncol=nn,
-                        nrow=length(indicesreg[[1]])))
-names(indicesreg) <- as.character(unlist(lapply(1:nn,
+indicesregK   <- data.frame(matrix(unlist(indicesregK), ncol=nn,
+                        nrow=length(indicesregK[[1]])))
+names(indicesregK) <- as.character(unlist(lapply(1:nn,
                                   function(i)paste0("iP",i))))
 
-all <- cbind(dataset, indicesreg)
+all <- cbind(dataset, indicesregK)
 
 str(all)
 
@@ -163,6 +196,33 @@ regionalpoints = st_as_sf(regionalpoints)
 plot(regionalpoints)
 plot(regionalpoints %>% filter(iP3==1) )
 
+# table for global indices: (or eventually knots)
+datasetglob <- dataset$coo %>% dplyr::select(IDglo,latglo,longlo) %>% 
+  distinct(IDglo,latglo,longlo)
+
+indicesglobK   <- data.frame(matrix(unlist(indicesglobK), ncol=nn,
+                                  nrow=length(indicesglobK[[1]])))
+names(indicesglobK) <- as.character(unlist(lapply(1:nn,
+                                                function(i)paste0("iP",i))))
+
+allglob <- cbind(datasetglob, indicesglobK)
+
+
+globalpoints <- SpatialPointsDataFrame(cbind(allglob$longlo, 
+                                             allglob$latglo), 
+                                         as.data.frame(cbind(
+                                           iP1   = allglob$iP1,
+                                           iP2   = allglob$iP2,
+                                           iP3   = allglob$iP3,
+                                           iP4   = allglob$iP4,
+                                           iP5   = allglob$iP5)),
+                                         proj4string = CRS('+proj=longlat +datum=WGS84'),
+                                         bbox = bordes)
+
+globalpoints = st_as_sf(globalpoints)
+plot(globalpoints)
+plot(globalpoints %>% filter(iP3==1) )
+
 ## Aquí es donde se puede hacer la aplicación para cada nivel y partición
 
 library(purrr)
@@ -171,5 +231,123 @@ regionalpoints %>%
   map(summary) 
 
 
+##Ejercicio calculo de W según formula (6) de Katzfuss
+
+Q5a <- globalpoints %>% filter(iP4==1)
+Q5b <- globalpoints %>% filter(iP1==1)
+
+corrMatern <- function(points_sf,kappa, variance, nu=1) {
+  coords <- st_coordinates(points_sf$geometry)
+  m <- as.matrix(dist(coords))
+  m <- variance*exp((1-nu)*log(2) + nu*log(kappa*m)-
+             lgamma(nu))*besselK(m*kappa, nu)
+  m[is.nan(m)] <- variance
+  #diag(m) <- variance
+  return(m)
+}
+corrMatern(Q5a,kappa,sigma2)
+
+corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
+  coords1 <- st_coordinates(points_sf1$geometry)
+  coords2 <- st_coordinates(points_sf2$geometry)
+  m <- as.matrix(pdist(coords1,coords2))
+  m <- variance*exp((1-nu)*log(2) + nu*log(kappa*m)-
+             lgamma(nu))*besselK(m*kappa, nu)
+  m[is.nan(m)] <- variance
+  #diag(m) <- variance
+  return(m)
+}
+MM <- corrMaternduo(Q5a,Q5b,kappa,sigma2)
 
 
+Wmaker <- function(globalpoints,M,nc,nr){
+  Wlist <- list()
+  for(m in 0:M){
+    Qlist <- list()
+    Jm <- nc[[m+1]]*nr[[m+1]]
+    for(j in 1:Jm){
+     Qlist[[j]] <- globalpoints %>% filter(iP1==1)  
+    }
+  }
+}
+
+
+
+globalpoints <- globalpoints %>% mutate(iG1=as.numeric(paste0(iP1)),iG2=as.numeric(paste0(iP1,iP2)),
+                               iG3=as.numeric(paste0(iP1,iP2,iP3)),
+                               iG4=as.numeric(paste0(iP1,iP2,iP3,iP4)),
+                               iG4=as.numeric(paste0(iP1,iP2,iP3,iP4,iP5))) 
+
+
+
+indicesW <- list(sort(unique(globalpoints$iG1)),
+                 sort(unique(globalpoints$iG2)),
+                 sort(unique(globalpoints$iG3)),
+                 sort(unique(globalpoints$iG4)),
+                 sort(unique(globalpoints$iG5)))
+
+
+
+
+Qlist <- list()
+Wlist <- list()
+#m=0 j0=1 l=0
+Q0 <- globalpoints %>% filter(iG1==1)
+Qlist[[1]] <- list()
+Qlist[[1]][[1]] <- Q0
+Wlist[[1]] <- list()
+W0 <- corrMatern(Q0,kappa,sigma2)
+Wlist[[1]][[1]] <- W0
+
+#m=1 j1=1,..,4 l=0,1
+Qlist[[2]] <- list()
+Wlist[[2]] <- list()
+Wlist[[2]][[1]] <- list()
+Wlist[[2]][[2]] <- list()
+for(j1 in 1:length(indicesW[[2]])){
+  Qlist[[2]][[j1]] <- globalpoints %>% filter(iG2==indicesW[[2]][j1])
+  Wlist[[2]][[1]][[j1]] <- corrMaternduo(Qlist[[2]][[j1]],Qlist[[1]][[1]],kappa,sigma2)
+  Wlist[[2]][[2]][[j1]] <- corrMaternduo(Qlist[[2]][[j1]],Qlist[[2]][[j1]],kappa,sigma2)-
+    Wlist[[2]][[1]][[j1]]%*%solve(Wlist[[1]][[1]])%*%t(Wlist[[2]][[1]][[j1]])
+}
+
+#m=2 j2=1,..,11 l=0,1,2
+Qlist[[3]] <- list()
+Wlist[[3]] <- list()
+Wlist[[3]][[1]] <- list()
+Wlist[[3]][[2]] <- list()
+Wlist[[3]][[3]] <- list()
+for(j2 in 1:length(indicesW[[3]])){
+  Qlist[[3]][[j2]] <- globalpoints %>% filter(iG3==indicesW[[3]][j2])
+  Wlist[[3]][[1]][[j2]] <- corrMaternduo(Qlist[[3]][[j2]],Qlist[[1]][[1]],kappa,sigma2)
+  #Qlist[[3]][[j2]]$iG2[1]
+  #Wlist[[3]][[2]][[j2]] <- corrMaternduo(Qlist[[3]][[j2]],Qlist[[2]][[j1]],kappa,sigma2)-
+  #  Wlist[[2]][[1]][[j2]]%*%solve(Wlist[[1]][[1]])%*%t(Wlist[[2]][[1]][[j2]])
+}
+
+
+
+Q01_1 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==1)
+Q01_2 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==2)
+Q01_3 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==3)
+Q01_4 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==4)
+Q01_5 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==5)
+
+
+W01_1_0 <- corrMaternduo(Q01_1,Q0,kappa,sigma2)
+W01_2_0 <- corrMaternduo(Q01_2,Q0,kappa,sigma2)
+W01_3_0 <- corrMaternduo(Q01_3,Q0,kappa,sigma2)
+W01_4_0 <- corrMaternduo(Q01_4,Q0,kappa,sigma2)
+W01_5_0 <- corrMaternduo(Q01_5,Q0,kappa,sigma2)
+
+W01_1_1 <- corrMaternduo(Q01_1,Q01,kappa,sigma2)-W01_1_0%*%solve(W0)%*%t(W01_0)
+W01_2_1 <- corrMaternduo(Q01_2,Q01,kappa,sigma2)-W01_2_0%*%solve(W0)%*%t(W01_0)
+W01_3_1 <- corrMaternduo(Q01_3,Q01,kappa,sigma2)-W01_3_0%*%solve(W0)%*%t(W01_0)
+W01_4_1 <- corrMaternduo(Q01_4,Q01,kappa,sigma2)-W01_4_0%*%solve(W0)%*%t(W01_0)
+W01_5_1 <- corrMaternduo(Q01_5,Q01,kappa,sigma2)-W01_5_0%*%solve(W0)%*%t(W01_0)
+
+W01_1_2 <- corrMaternduo(Q01_1,Q01_1,kappa,sigma2)-W01_1_0%*%solve(W0)%*%t(W01_1_0)-W01_1_1%*%solve(W01_1)%*%t(W01_1_1)
+W01_2_2 <- corrMaternduo(Q01_2,Q01_2,kappa,sigma2)-W01_2_0%*%solve(W0)%*%t(W01_2_0)-W01_2_1%*%solve(W01_1)%*%t(W01_2_1)
+W01_3_2 <- corrMaternduo(Q01_3,Q01_3,kappa,sigma2)-W01_3_0%*%solve(W0)%*%t(W01_3_0)-W01_3_1%*%solve(W01_1)%*%t(W01_3_1)
+W01_4_2 <- corrMaternduo(Q01_4,Q01_4,kappa,sigma2)-W01_4_0%*%solve(W0)%*%t(W01_4_0)-W01_4_1%*%solve(W01_1)%*%t(W01_4_1)
+W01_5_2 <- corrMaternduo(Q01_5,Q01_5,kappa,sigma2)-W01_5_0%*%solve(W0)%*%t(W01_5_0)-W01_5_1%*%solve(W01_1)%*%t(W01_5_1)
