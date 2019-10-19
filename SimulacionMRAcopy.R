@@ -6,6 +6,8 @@ library(plotly)
 library(lwgeom)
 library(pdist)
 library(stringr)
+library(tidyr)
+library(rlang)
 
 set.seed(1)
 
@@ -51,14 +53,13 @@ globalpoints <- SpatialPoints(global)
 proj4string(regionalpoints) <- '+proj=longlat +datum=WGS84'
 proj4string(globalpoints) <- '+proj=longlat +datum=WGS84'
 
-hh2<-gBuffer(hh, width=0.7, quadsegs=1, capStyle='SQUARE', byid=T)
+hh2<-gBuffer(hh, width=0.71, quadsegs=1, capStyle='SQUARE', byid=T)
 plot(hh2, add=TRUE,col="red")
 points(regionalpoints, cex=0.1)
 points(globalpoints, cex=0.5, col="blue")
 
 ## match regional with global
-aa <- over(regionalpoints, geometry(hh2), 
-           returnList = TRUE)
+aa <- over(regionalpoints, geometry(hh2))
 coo<-cbind(regional,global[unlist(aa),], unlist(aa))
 plot(coo[,1:2], cex=0.01,col=coo[,5])
 points(coo[,3:4],cex=0.01)
@@ -233,8 +234,6 @@ regionalpoints %>%
 
 ##Ejercicio calculo de W según formula (6) de Katzfuss
 
-Q5a <- globalpoints %>% filter(iP4==1)
-Q5b <- globalpoints %>% filter(iP1==1)
 
 corrMatern <- function(points_sf,kappa, variance, nu=1) {
   coords <- st_coordinates(points_sf$geometry)
@@ -245,7 +244,7 @@ corrMatern <- function(points_sf,kappa, variance, nu=1) {
   #diag(m) <- variance
   return(m)
 }
-corrMatern(Q5a,kappa,sigma2)
+#corrMatern(Q5a,kappa,sigma2)
 
 corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   coords1 <- st_coordinates(points_sf1$geometry)
@@ -257,97 +256,67 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   #diag(m) <- variance
   return(m)
 }
-MM <- corrMaternduo(Q5a,Q5b,kappa,sigma2)
 
 
-Wmaker <- function(globalpoints,M,nc,nr){
+indicesW <- list()
+indicesW[[1]] <- globalpoints %>% expand(iP1) %>% arrange(iP1)%>%
+  mutate(indexg1 = 1:n())
+indicesW[[2]] <- globalpoints %>% expand(iP1,iP2) %>% 
+  arrange(iP1,iP2) %>% mutate(indexg2 = 1:n())
+indicesW[[3]] <- globalpoints %>% expand(iP1,iP2,iP3) %>%
+  arrange(iP1,iP2,iP3) %>% mutate(indexg3 = 1:n())
+indicesW[[4]] <- globalpoints %>% expand(iP1,iP2,iP3,iP4) %>%
+  arrange(iP1,iP2,iP3,iP4) %>% mutate(indexg4 = 1:n())
+indicesW[[5]] <- globalpoints %>% expand(iP1,iP2,iP3,iP4,iP5) %>%
+  arrange(iP1,iP2,iP3,iP4,iP5) %>% mutate(indexg5 = 1:n())
+
+tablaindicesW <- indicesW[[5]] %>% left_join(indicesW[[4]])%>%
+  left_join(indicesW[[3]]) %>% left_join(indicesW[[2]]) %>%
+  left_join(indicesW[[1]])
+
+
+globalpoints <- globalpoints %>% left_join(tablaindicesW) 
+regionalpoints <- regionalpoints %>% left_join(tablaindicesW) 
+
+
+##Matrices W according to Katzfuss, 2017 (need to be optimized!)
+##Indexing: [[m]][[l]][[partition number]]
+
+
+WQmaker <- function(){
+  Qlist <- list()
   Wlist <- list()
-  for(m in 0:M){
-    Qlist <- list()
-    Jm <- nc[[m+1]]*nr[[m+1]]
-    for(j in 1:Jm){
-     Qlist[[j]] <- globalpoints %>% filter(iP1==1)  
+  for(m in 0:(nn-1)){
+    M <- m+1
+    Qlist[[M]] <- list()
+    Wlist[[M]] <- list()
+    for(l in 1:M){
+      Wlist[[M]][[l]] <- list()
+    }
+    for(jm in 1:(dim(indicesW[[M]])[1])){
+      show(paste(m,jm,sep = '-'))
+      Qlist[[M]][[jm]] <- globalpoints %>% filter(.data[[paste0('indexg',M)]]==jm)
+      indicesjerarq <- Qlist[[M]][[jm]] %>% dplyr::select(starts_with('indexg'))%>%
+        st_drop_geometry()
+      for(l in 1:M){
+        jl <- as.numeric(indicesjerarq %>% dplyr::select(.data[[paste0('indexg',l)]]) %>% unique())
+        factorW <- 0
+        if(l!=1){
+          factorW <- 0
+          for(k in 1:(l-1)){
+            jk <- as.numeric(indicesjerarq %>% dplyr::select(.data[[paste0('indexg',k)]]) %>% unique())     
+            factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%solve(Wlist[[k]][[k]][[jk]])%*%t(Wlist[[l]][[k]][[jl]])
+          }
+        }  
+        Wlist[[M]][[l]][[jm]] <- corrMaternduo(Qlist[[M]][[jm]],Qlist[[l]][[jl]],kappa,sigma2)-factorW  
+      }
     }
   }
+  return(Wlist)
 }
 
 
+#save(Qlist,Wlist,file = 'WQmatrices.RData')
+#load('WQmatrices.RData')
 
-globalpoints <- globalpoints %>% mutate(iG1=as.numeric(paste0(iP1)),iG2=as.numeric(paste0(iP1,iP2)),
-                               iG3=as.numeric(paste0(iP1,iP2,iP3)),
-                               iG4=as.numeric(paste0(iP1,iP2,iP3,iP4)),
-                               iG4=as.numeric(paste0(iP1,iP2,iP3,iP4,iP5))) 
-
-
-
-indicesW <- list(sort(unique(globalpoints$iG1)),
-                 sort(unique(globalpoints$iG2)),
-                 sort(unique(globalpoints$iG3)),
-                 sort(unique(globalpoints$iG4)),
-                 sort(unique(globalpoints$iG5)))
-
-
-
-
-Qlist <- list()
-Wlist <- list()
-#m=0 j0=1 l=0
-Q0 <- globalpoints %>% filter(iG1==1)
-Qlist[[1]] <- list()
-Qlist[[1]][[1]] <- Q0
-Wlist[[1]] <- list()
-W0 <- corrMatern(Q0,kappa,sigma2)
-Wlist[[1]][[1]] <- W0
-
-#m=1 j1=1,..,4 l=0,1
-Qlist[[2]] <- list()
-Wlist[[2]] <- list()
-Wlist[[2]][[1]] <- list()
-Wlist[[2]][[2]] <- list()
-for(j1 in 1:length(indicesW[[2]])){
-  Qlist[[2]][[j1]] <- globalpoints %>% filter(iG2==indicesW[[2]][j1])
-  Wlist[[2]][[1]][[j1]] <- corrMaternduo(Qlist[[2]][[j1]],Qlist[[1]][[1]],kappa,sigma2)
-  Wlist[[2]][[2]][[j1]] <- corrMaternduo(Qlist[[2]][[j1]],Qlist[[2]][[j1]],kappa,sigma2)-
-    Wlist[[2]][[1]][[j1]]%*%solve(Wlist[[1]][[1]])%*%t(Wlist[[2]][[1]][[j1]])
-}
-
-#m=2 j2=1,..,11 l=0,1,2
-Qlist[[3]] <- list()
-Wlist[[3]] <- list()
-Wlist[[3]][[1]] <- list()
-Wlist[[3]][[2]] <- list()
-Wlist[[3]][[3]] <- list()
-for(j2 in 1:length(indicesW[[3]])){
-  Qlist[[3]][[j2]] <- globalpoints %>% filter(iG3==indicesW[[3]][j2])
-  Wlist[[3]][[1]][[j2]] <- corrMaternduo(Qlist[[3]][[j2]],Qlist[[1]][[1]],kappa,sigma2)
-  #Qlist[[3]][[j2]]$iG2[1]
-  #Wlist[[3]][[2]][[j2]] <- corrMaternduo(Qlist[[3]][[j2]],Qlist[[2]][[j1]],kappa,sigma2)-
-  #  Wlist[[2]][[1]][[j2]]%*%solve(Wlist[[1]][[1]])%*%t(Wlist[[2]][[1]][[j2]])
-}
-
-
-
-Q01_1 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==1)
-Q01_2 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==2)
-Q01_3 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==3)
-Q01_4 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==4)
-Q01_5 <- globalpoints %>% filter(iP1==1,iP2==1,iP3==5)
-
-
-W01_1_0 <- corrMaternduo(Q01_1,Q0,kappa,sigma2)
-W01_2_0 <- corrMaternduo(Q01_2,Q0,kappa,sigma2)
-W01_3_0 <- corrMaternduo(Q01_3,Q0,kappa,sigma2)
-W01_4_0 <- corrMaternduo(Q01_4,Q0,kappa,sigma2)
-W01_5_0 <- corrMaternduo(Q01_5,Q0,kappa,sigma2)
-
-W01_1_1 <- corrMaternduo(Q01_1,Q01,kappa,sigma2)-W01_1_0%*%solve(W0)%*%t(W01_0)
-W01_2_1 <- corrMaternduo(Q01_2,Q01,kappa,sigma2)-W01_2_0%*%solve(W0)%*%t(W01_0)
-W01_3_1 <- corrMaternduo(Q01_3,Q01,kappa,sigma2)-W01_3_0%*%solve(W0)%*%t(W01_0)
-W01_4_1 <- corrMaternduo(Q01_4,Q01,kappa,sigma2)-W01_4_0%*%solve(W0)%*%t(W01_0)
-W01_5_1 <- corrMaternduo(Q01_5,Q01,kappa,sigma2)-W01_5_0%*%solve(W0)%*%t(W01_0)
-
-W01_1_2 <- corrMaternduo(Q01_1,Q01_1,kappa,sigma2)-W01_1_0%*%solve(W0)%*%t(W01_1_0)-W01_1_1%*%solve(W01_1)%*%t(W01_1_1)
-W01_2_2 <- corrMaternduo(Q01_2,Q01_2,kappa,sigma2)-W01_2_0%*%solve(W0)%*%t(W01_2_0)-W01_2_1%*%solve(W01_1)%*%t(W01_2_1)
-W01_3_2 <- corrMaternduo(Q01_3,Q01_3,kappa,sigma2)-W01_3_0%*%solve(W0)%*%t(W01_3_0)-W01_3_1%*%solve(W01_1)%*%t(W01_3_1)
-W01_4_2 <- corrMaternduo(Q01_4,Q01_4,kappa,sigma2)-W01_4_0%*%solve(W0)%*%t(W01_4_0)-W01_4_1%*%solve(W01_1)%*%t(W01_4_1)
-W01_5_2 <- corrMaternduo(Q01_5,Q01_5,kappa,sigma2)-W01_5_0%*%solve(W0)%*%t(W01_5_0)-W01_5_1%*%solve(W01_1)%*%t(W01_5_1)
+###Likelihood calculation (fixed parameters)
