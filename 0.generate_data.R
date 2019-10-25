@@ -50,10 +50,10 @@ proj4string(globalpoints) <- '+proj=longlat +datum=WGS84'
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 
 
-dev.off()
+#dev.off()
 plot(global, cex=0.01)
 points(regional,cex=0.01,col="blue")
-hh2<-gBuffer(hh, width=0.75, quadsegs=1, 
+hh2<-gBuffer(hh, width=0.71, quadsegs=1, 
              capStyle='SQUARE', byid=T)
 
 plot(hh2, add=TRUE)
