@@ -44,6 +44,8 @@ nr <- list(1, 2, 8, 16)
 nc_n <- c(1,2,2,2) 
 nr_n <- c(1,2,2,2) 
 
+
+
 indicesglob  <- list()
 indicesreg   <- list()
 cellloc.glob <- list()
@@ -51,43 +53,39 @@ cellloc.reg  <- list()
 indicesglobK  <- list()
 indicesregK   <- list()
 
-# el map no cambia el tiempo para nada, no vale la pena
-for(i in 1:length(nc)){
-globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
-                     ymx=bordes[4],val=partitions[[i]],
-                     crs=crsglobal,ncols=nc[[i]],nrows=nr[[i]])
+# ¿Cuántas veces queremos partir el dominio y cuál es el borde?
+nn <- length(nc)
 
-indicesglob[[i]]    <- raster::extract(globraster,globalpoints, 
-                                       cellnumbers=TRUE)[,1]
-cellloc.glob[[i]]   <- rowColFromCell(globraster,indicesglob[[i]])
-
-
-indicesreg[[i]]     <- raster::extract(globraster,regionalpoints, 
-                                       cellnumbers=TRUE)[,1]
-cellloc.reg[[i]]    <- rowColFromCell(globraster,indicesreg[[i]])
-
-indicesglobtemp <- as.data.frame(cellloc.glob[[i]]) %>% 
-  mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
-  mutate(rown=ifelse(rown==0,nr_n[i],rown),
-         coln=ifelse(coln==0,nc_n[i],coln))
-
-indicesregtemp <- as.data.frame(cellloc.reg[[i]]) %>% 
-  mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
-  mutate(rown=ifelse(rown==0,nr_n[i],rown),
-         coln=ifelse(coln==0,nc_n[i],coln))
-
-indexmatrix <- as.data.frame(expand.grid(1:nr_n[i],1:nc_n[i]))
-indexmatrix <- indexmatrix %>% dplyr::select(rown=Var1,coln=Var2)%>%
-  mutate(celln=1:(nr_n[i]*nc_n[i]))
-
-indicesglobK[[i]] <- as.numeric((indicesglobtemp %>% left_join(indexmatrix,
-                      by = c('rown','coln')) %>%
-                      dplyr::select(celln))$celln)
-indicesregK[[i]] <- as.numeric((indicesregtemp %>% left_join(indexmatrix,
-                      by = c('rown','coln')) %>%
-                      dplyr::select(celln))$celln)
-return(list(indicesglob,indicesreg,cellloc.glob,cellloc.reg,
-            indicesglobK,indicesregK))
+for(i in 1:nn){
+  globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
+                       ymx=bordes[4],val=partitions[[i]],
+                       crs=crsglobal,ncols=nc[[i]],nrows=nr[[i]])
+  
+  indicesglob[[i]]    <- raster::extract(globraster,globalpoints, cellnumbers=TRUE)[,1]
+  cellloc.glob[[i]]   <- rowColFromCell(globraster,indicesglob[[i]])
+  
+  
+  indicesreg[[i]]     <- raster::extract(globraster,regionalpoints, cellnumbers=TRUE)[,1]
+  cellloc.reg[[i]]    <- rowColFromCell(globraster,indicesreg[[i]])
+  
+  indicesglobtemp <- as.data.frame(cellloc.glob[[i]]) %>% 
+    mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
+    mutate(rown=ifelse(rown==0,nr_n[i],rown),
+           coln=ifelse(coln==0,nc_n[i],coln))
+  
+  indicesregtemp <- as.data.frame(cellloc.reg[[i]]) %>% 
+    mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
+    mutate(rown=ifelse(rown==0,nr_n[i],rown),
+           coln=ifelse(coln==0,nc_n[i],coln))
+  
+  indexmatrix <- as.data.frame(expand.grid(1:nr_n[i],1:nc_n[i]))
+  indexmatrix <- indexmatrix %>% dplyr::select(rown=Var1,coln=Var2)%>%
+    mutate(celln=1:(nr_n[i]*nc_n[i]))
+  
+  indicesglobK[[i]] <- as.numeric((indicesglobtemp %>% left_join(indexmatrix,by = c('rown','coln')) %>%
+                                     dplyr::select(celln))$celln)
+  indicesregK[[i]] <- as.numeric((indicesregtemp %>% left_join(indexmatrix,by = c('rown','coln')) %>%
+                                    dplyr::select(celln))$celln)
 }
 
 # table for regional indices:
@@ -166,33 +164,33 @@ generate_samples <- function(data,knots)
   suppressMessages(st_sample(data, size = knots))
 create_knots <- function(partition, knots){
   if(partition==1){
-    points <- purrr::map(globalpoints %>%split(.$iP1), 
-                         generate_samples,knots)
-    points <- imap(points, 
-                   ~st_sf(tibble(iP = 
-                                   rep(.y, length(.x))),geometry = .x))}
+points <- purrr::map(globalpoints %>%split(.$iP1), 
+              generate_samples,knots)
+points <- imap(points, 
+               ~st_sf(tibble(iP = 
+              rep(.y, length(.x))),geometry = .x))}
   if(partition==2){
     points <- purrr::map(globalpoints %>%split(.$iP2), 
-                         generate_samples,knots)
+                  generate_samples,knots)
     points <- imap(points, 
                    ~st_sf(tibble(iP = 
-                                   rep(.y, length(.x))),geometry = .x))}
+                   rep(.y, length(.x))),geometry = .x))}
   if(partition==3){
     points <- purrr::map(globalpoints %>%split(.$iP3), 
-                         generate_samples,knots)
+                  generate_samples,knots)
     points <- imap(points, 
                    ~st_sf(tibble(iP = 
-                                   rep(.y, length(.x))),geometry = .x))}
+                  rep(.y, length(.x))),geometry = .x))}
   if(partition==4){
     points <- purrr::map(regionalpoints %>%split(.$iP4), 
-                         generate_samples,knots)
+                  generate_samples,knots)
     points <- imap(points, 
                    ~st_sf(tibble(iP = 
-                                   rep(.y, length(.x))),geometry = .x))}
-  points <- do.call(rbind, points)
-  points <- points %>% group_by(iP) %>% summarise()
-  points %>% mutate(n_points = map_int(geometry, nrow))
-  return(points)
+                   rep(.y, length(.x))),geometry = .x))}
+points <- do.call(rbind, points)
+points <- points %>% group_by(iP) %>% summarise()
+points %>% mutate(n_points = map_int(geometry, nrow))
+return(points)
 }
 
 #iP1 -> sample
@@ -221,8 +219,8 @@ knots4<-create_knots(4,5)
 #which((globalpoints$geometry %in% st_cast(knots4[knots4$iP==3,]$geometry, "POINT")))
 
 # Now I need to now what's the final table format, to make it
-# work with these nodes.
-
+# work with this nodes.
+ 
 
 knots1_tb <- as.data.frame(st_coordinates(knots1))
 knots2_tb <- as.data.frame(st_coordinates(knots2))
