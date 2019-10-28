@@ -220,8 +220,6 @@ knots4<-create_knots(4,5)
 
 # Now I need to now what's the final table format, to make it
 # work with this nodes.
-
-
  
 
 knots1_tb <- as.data.frame(st_coordinates(knots1))
@@ -244,4 +242,3 @@ knotsMRA[[3]] <- st_sf(knots3_tb)
 knotsMRA[[4]] <- st_sf(knots4_tb)
 
 ##Covariate matrix
-
