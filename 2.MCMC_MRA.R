@@ -36,7 +36,7 @@ WQmaker <- function(){
           factorW <- 0
           for(k in 1:(l-1)){
             jk <- as.numeric(indicesjerarq %>% dplyr::select(.data[[paste0('iP',k)]]) %>% unique())     
-            factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%solve(Wlist[[k]][[k]][[jk]])%*%t(Wlist[[l]][[k]][[jl]])
+            factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%chol2inv(chol(Wlist[[k]][[k]][[jk]]))%*%t(Wlist[[l]][[k]][[jl]])
           }
         }
         Wlist[[M]][[l]][[jm]] <- corrMaternduo(Qlist[[M]][[jm]],Qlist[[l]][[jl]],kappa,sigma2)-factorW  
