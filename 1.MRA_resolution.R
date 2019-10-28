@@ -51,7 +51,8 @@ cellloc.reg  <- list()
 indicesglobK  <- list()
 indicesregK   <- list()
 
-getindex<-function(i){
+# el map no cambia el tiempo para nada, no vale la pena
+for(i in 1:length(nc)){
 globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
                      ymx=bordes[4],val=partitions[[i]],
                      crs=crsglobal,ncols=nc[[i]],nrows=nr[[i]])
@@ -88,9 +89,6 @@ indicesregK[[i]] <- as.numeric((indicesregtemp %>% left_join(indexmatrix,
 return(list(indicesglob,indicesreg,cellloc.glob,cellloc.reg,
             indicesglobK,indicesregK))
 }
-
-# ¿Cuántas veces queremos partir el dominio y cuál es el borde?
-indices<- purrr::map(1:length(nc),function(x)getindex(x))
 
 # table for regional indices:
 indicesregK   <- data.frame(matrix(unlist(indicesregK), ncol=nn,
