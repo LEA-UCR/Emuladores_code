@@ -74,5 +74,6 @@ hh4<-hh[coo[,5],2]$y
 
 y <- beta0+(beta1+beta1s)*hh4+error ##Simulate the observations
 
+dataset<-tibble(coo,resp=y,covariate=hh4)
 
-
+save(dataset, hh2, globalpoints, regionalpoints, file="dataset.Rdata")
