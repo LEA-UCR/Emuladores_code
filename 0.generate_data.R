@@ -16,8 +16,6 @@ global<-final[final$lonval>240 &final$lonval<290
               & final$latval>30 & final$latval<60,c("lonval","latval")]
 regional<-t(aa)[t(aa)[,1]>30&t(aa)[,1]<60
                 &t(aa)[,2]>240&t(aa)[,2]<290,2:1]
-plot(global, cex=0.01)
-points(regional,cex=0.01,col="blue")
 
 N <- dim(global)[1] #Number of spatial points global
 n <- dim(regional)[1] #Number of spatial points regional
@@ -50,13 +48,10 @@ proj4string(globalpoints) <- '+proj=longlat +datum=WGS84'
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 
 
-#dev.off()
-plot(global, cex=0.01)
-points(regional,cex=0.01,col="blue")
 hh2<-gBuffer(hh, width=0.71, quadsegs=1, 
              capStyle='SQUARE', byid=T)
 
-plot(hh2, add=TRUE)
+plot(hh2)
 points(regionalpoints, cex=0.1)
 points(globalpoints, cex=0.5, col="blue")
 

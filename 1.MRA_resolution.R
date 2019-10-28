@@ -1,4 +1,3 @@
-library(sf)
 library(raster) 
 library(purrr)
 library(tidyr)
@@ -182,6 +181,7 @@ points <- imap(points,
                    ~st_sf(tibble(iP = 
                   rep(.y, length(.x))),geometry = .x))}
   if(partition==4){
+    #pba <- regionalpoints %>% group_by(iP4) %>% summarise(total=n())
     points <- purrr::map(regionalpoints %>%split(.$iP4), 
                   generate_samples,knots)
     points <- imap(points, 
