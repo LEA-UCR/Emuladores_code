@@ -192,13 +192,7 @@ create_knots <- function(partition, knots){
     points <- imap(points, 
                    ~st_sf(tibble(iP = 
                                    rep(.y, length(.x))),geometry = .x))}
-  if(partition==4){
-    #pba <- regionalpoints %>% group_by(iP4) %>% summarise(total=n())
-    points <- purrr::map(regionalpoints %>%split(.$iP4), 
-                         generate_samples,knots)
-    points <- imap(points, 
-                   ~st_sf(tibble(iP = 
-                                   rep(.y, length(.x))),geometry = .x))}
+
   points <- do.call(rbind, points)
   points <- points %>% group_by(iP) %>% summarise()
   points %>% mutate(n_points = map_int(geometry, nrow))
@@ -211,16 +205,13 @@ knots1<-create_knots(1,100)
 knots2<-create_knots(2,50)
 #iP3 -> sample
 knots3<-create_knots(3,40)
-#iP4 all
-knots4<-create_knots(4,50)
 
 knots1_tb <- as.data.frame(st_coordinates(knots1))
 knots2_tb <- as.data.frame(st_coordinates(knots2))
 knots3_tb <- as.data.frame(st_coordinates(knots3))
-knots4_tb <- as.data.frame(st_coordinates(knots4))
 
-colnames(knots1_tb) <- colnames(knots2_tb) <- colnames(knots3_tb) <- 
-  colnames(knots4_tb) <- c('longlo','latglo','ID')
+colnames(knots1_tb) <- colnames(knots2_tb) <- 
+  colnames(knots3_tb) <- c('longlo','latglo','ID')
 
 knots1_tb <- knots1_tb %>% left_join(regionalpoints) %>% 
   distinct(longlo,latglo,.keep_all = T)
@@ -228,8 +219,7 @@ knots2_tb <- knots2_tb %>% left_join(regionalpoints)%>%
   distinct(longlo,latglo,.keep_all = T)
 knots3_tb <- knots3_tb %>% left_join(regionalpoints)%>% 
   distinct(longlo,latglo,.keep_all = T)
-knots4_tb <- knots4_tb %>% left_join(regionalpoints)%>% 
-  distinct(longlo,latglo,.keep_all = T)
+knots4_tb <-regionalpoints
 
 knotsMRA <- list()
 
