@@ -9,7 +9,7 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   m <- variance*exp((1-nu)*log(2) + nu*log(kappa*m[[1]])-
                       lgamma(nu))*besselK(m[[1]]*kappa, nu)
   m[is.nan(m)] <- variance
-  diag(m) <- variance
+  #diag(m) <- variance
   return(m)
 }
 
@@ -42,7 +42,9 @@ WQmaker <- function(){
           factorW <- 0
           for(k in 1:(l-1)){
             jk <- as.numeric(indicesjerarq %>% 
-                  dplyr::select(.data[[paste0('iP',k)]]) %>% unique())     
+                  dplyr::select(.data[[paste0('iP',k)]]) %>% unique())  
+            diag(Wlist[[k]][[k]][[jk]])<-diag(Wlist[[k]][[k]][[jk]])+
+              rep(sigma2,dim(Wlist[[k]][[k]][[jk]])[1])
             factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%
               chol2inv(chol(Wlist[[k]][[k]][[jk]]))%*%
               t(Wlist[[l]][[k]][[jl]])
