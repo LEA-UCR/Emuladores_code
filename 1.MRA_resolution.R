@@ -1,6 +1,8 @@
 library(raster) 
 library(purrr)
 library(tidyr)
+library(dplyr)
+library(sf)
 load("dataset.Rdata") # generating betas takes a while
 
 ## Data generated:
@@ -198,13 +200,13 @@ create_knots <- function(partition, knots){
   points %>% mutate(n_points = map_int(geometry, nrow))
   return(points)
 }
-
+##25 approx 6448/(4^4)
 #iP1 -> sample
-knots1<-create_knots(1,100)
+knots1<-create_knots(1,30)
 #iP2 -> sample
-knots2<-create_knots(2,50)
+knots2<-create_knots(2,30)
 #iP3 -> sample
-knots3<-create_knots(3,40)
+knots3<-create_knots(3,30)
 
 knots1_tb <- as.data.frame(st_coordinates(knots1))
 knots2_tb <- as.data.frame(st_coordinates(knots2))
