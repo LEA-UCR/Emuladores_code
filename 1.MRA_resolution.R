@@ -133,7 +133,7 @@ f <- function(nc, nr, partitions, nc_n, nr_n, bordes, crsglobal){
 tic()
 INDICES <- pmap(list(nc, nr, partitions,nc_n,nr_n ), f,bordes = bordes, crsglobal = crsglobal)
 indicesregK <- list(INDICES[[1]][[1]],INDICES[[2]][[1]],INDICES[[3]][[1]], INDICES[[4]][[1]])
-indicesglobk<- list(INDICES[[1]][[2]],INDICES[[2]][[2]],INDICES[[3]][[2]], INDICES[[4]][[2]])
+indicesglobK<- list(INDICES[[1]][[2]],INDICES[[2]][[2]],INDICES[[3]][[2]], INDICES[[4]][[2]])
 toc()
 rm(INDICES)
 
