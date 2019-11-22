@@ -1,16 +1,15 @@
 set.seed(1000)
 
 # Genero datos
-N <- 10000
-p<-1
-X <- matrix(rnorm(N*p),N,p)
-y <- X%*%2+rnorm(N,0,1)
-MCMCBetasI <- 1
+N <- 1000
+X <- matrix(rnorm(N*N),N,N)
+y <- X%*%rep(8,N)+rnorm(N,0,1)
+MCMCBetasI <- rep(1,N)
 
 # Hiperparámetros (fijos)
 sigma2_ <- 1
 var <- 1
-V <- diag(p)
+V <- diag(N)*var
 b <- 1
 a <- 0
 vi <- 1
@@ -21,7 +20,7 @@ js <- jb <- 0
 BurnIn <- 1000
 TotIter <- 10000
 AuxBurnIn <- 1
-SaveResults <- matrix(NA, TotIter-BurnIn,3)
+SaveResults <- list()
 
 #https://brunaw.com/phd/mcmc/report.pdf
 
@@ -47,7 +46,8 @@ for(i in 1:TotIter){
   
   ## Proposal distribution for beta
   
-  MCMCBetasC <- mvrnorm(1, MCMCBetasI, V)
+  MCMCBetasC <- sapply(MCMCBetasI, function(x)rnorm(1,x,1))
+  
   # Computing the ratio:
   ratio_beta <- ((-0.5/sigma2_* (t(y - (X %*% MCMCBetasC)) %*%
     (y - (X %*% MCMCBetasC)) - 0.5/vi*sum(abs(MCMCBetasC - mi))^2)) -
@@ -63,7 +63,7 @@ for(i in 1:TotIter){
   ## Leave burned runs out
   if (i > BurnIn){
     # Saving results
-    SaveResults[AuxBurnIn,] <- c(AuxBurnIn, MCMCBetasI, sigma2_)
+    SaveResults[[AuxBurnIn]] <- c(AuxBurnIn, MCMCBetasI, sigma2_)
     AuxBurnIn <- AuxBurnIn + 1
   }
   print(i)
@@ -75,8 +75,10 @@ for(i in 1:TotIter){
 
 library(coda)
 # http://www.math.kit.edu/stoch/lehre/abib2010w/media/coda.pdf
-samples <- as.mcmc((SaveResults[,2:3]))
-plot(samples)
+samples_beta <- as.mcmc(t(matrix(unlist(SaveResults),nrow=1002))[,2:1001])
+samples_sigma <- as.mcmc(t(matrix(unlist(SaveResults),nrow=1002))[,1002])
+plot(samples_sigma)
+matplot(t(samples_beta), type="l")
 raftery.diag(samples)
 effectiveSize(samples)
 rejectionRate(samples)
