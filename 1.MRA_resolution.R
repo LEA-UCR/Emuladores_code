@@ -215,12 +215,14 @@ knots3_tb <- as.data.frame(st_coordinates(knots3))
 colnames(knots1_tb) <- colnames(knots2_tb) <- 
   colnames(knots3_tb) <- c('longlo','latglo','ID')
 
-knots1_tb <- knots1_tb %>% left_join(regionalpoints) %>% 
+knots1_tb <- knots1_tb %>% left_join(globalpoints) %>% 
+  distinct(longlo,latglo,.keep_all = T) 
+knots2_tb <- knots2_tb %>% left_join(globalpoints)%>% 
   distinct(longlo,latglo,.keep_all = T)
-knots2_tb <- knots2_tb %>% left_join(regionalpoints)%>% 
+knots2_tb$geometry <- knots2_tb$geometry+0.1
+knots3_tb <- knots3_tb %>% left_join(globalpoints)%>% 
   distinct(longlo,latglo,.keep_all = T)
-knots3_tb <- knots3_tb %>% left_join(regionalpoints)%>% 
-  distinct(longlo,latglo,.keep_all = T)
+knots3_tb$geometry <- knots3_tb$geometry+0.5
 knots4_tb <-regionalpoints
 
 knotsMRA <- list()

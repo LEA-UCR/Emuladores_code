@@ -1,10 +1,11 @@
 library(pdist)
+library(fields)
 source("1.MRA_resolution.R")
 
 corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
-  m <- ifelse(all.equal(coords1,coords2)==TRUE,list(as.matrix(dist(coords1,diag = T,upper = T))),
+  m <- ifelse(identical(coords1,coords2)==TRUE,list(as.matrix(dist(coords1,diag = T,upper = T))),
               list(as.matrix(pdist(coords1,coords2))))
   m <- variance*exp((1-nu)*log(2) + nu*log(kappa*m[[1]])-
                       lgamma(nu))*besselK(m[[1]]*kappa, nu)
@@ -13,15 +14,16 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   return(m)
 }
 
-corrMaternduo_fields <- function(points_sf1,points_sf2) {
+
+corrMaternduo_fields <- function(points_sf1,points_sf2,variance) {
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
-  m <- ifelse(all.equal(coords1,coords2)==TRUE,list(as.matrix(dist(coords1))),
-              list(as.matrix(pdist(coords1,coords2))))/1e2
-  m <- variance*exp((1-nu)*log(2) + nu*log(kappa*m[[1]])-
-                      lgamma(nu))*besselK(m[[1]]*kappa, nu)
-  m[is.nan(m)] <- variance
-  #diag(m) <- variance
+  m <- matrix(0,nrow = dim(coords1)[1],ncol = dim(coords2)[1])
+  #if(identical(coords1,coords2)){
+  #  diag(m) <- variance
+  #}
+  m <- variance*stationary.cov(coords1,coords2,Covariance = 'Matern',
+                      Distance = 'rdist.earth')
   return(m)
 }
 
@@ -31,58 +33,30 @@ kappa <- 1.5
 sigma2 <- 1/4
 taue <- 1/4
 
-WQmaker <- function(){
-  Qlist <- list()
-  Wlist <- list()
-  for(m in 0:(nn-1)){
-    M <- m+1
-    Qlist[[M]] <- list()
-    Wlist[[M]] <- list()
-    for(l in 1:M){
-      Wlist[[M]][[l]] <- list()
-    }
-    for(jm in 1:(dim(indicesW[[M]])[1])){
-      show(paste(m,jm,sep = '-'))
-      Qlist[[M]][[jm]] <- knotsMRA[[M]] %>% 
-        filter(.data[[paste0('iP',M)]]==jm)
-      indicesjerarq <- Qlist[[M]][[jm]] %>% 
-        dplyr::select(starts_with('iP'))%>%
-        st_drop_geometry()
-      for(l in 1:M){
-        show(l)
-        jl <- as.numeric(indicesjerarq %>% 
-                  dplyr::select(.data[[paste0('iP',l)]]) %>% unique())
-        factorW <- 0
-        if(l!=1){
-          factorW <- 0
-          for(k in 1:(l-1)){
-            jk <- as.numeric(indicesjerarq %>% 
-                  dplyr::select(.data[[paste0('iP',k)]]) %>% unique())  
-            #diag(Wlist[[k]][[k]][[jk]])<-diag(Wlist[[k]][[k]][[jk]])+
-             # rep(sigma2,dim(Wlist[[k]][[k]][[jk]])[1])
-            factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%
-              chol2inv(chol(Wlist[[k]][[k]][[jk]]))%*%
-              t(Wlist[[l]][[k]][[jl]])
-          }
-        }
-        Wlist[[M]][[l]][[jm]] <- corrMaternduo(Qlist[[M]][[jm]],
-                                               Qlist[[l]][[jl]],
-                                               kappa,
-                                               sigma2)-factorW
-        
-        if(M==l){
-          show(min(eigen(corrMaternduo(Qlist[[M]][[jm]],
-                                       Qlist[[l]][[jl]],
-                                       kappa,
-                                       sigma2))$values))
-          show(max(eigen(factorW)$values))
-        }
-        
-       # image.plot(Wlist[[M]][[l]][[jm]])
-      }
-    }
-  }
-  return(Wlist)
-}
 
-Wlist <- WQmaker()
+
+
+source('likelihoodK.R')
+res <- likelihoodKatzfuss(kappa,sigma2,taue)
+
+
+#dj_1,...,j_M    *X
+
+#uj_1,...,j_M    *X
+
+#Atilde k,l j_1,...,j_M     *X
+#omegatilde k,l j_1,...,j_M      *X
+
+#A k,l j_1,...,j_M-1
+#omega k j_1,...,j_M-1
+  
+#Ktilde j_1,...,j_M-1
+
+#dj_1,...,j_M-1
+#uj_1,...,j_M-1
+
+#Atilde k,l j_1,...,j_M-1
+#omegatilde k j_1,...,j_M-1
+
+
+
