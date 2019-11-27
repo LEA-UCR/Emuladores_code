@@ -58,7 +58,7 @@ WQXYmakerMatern <- function(){
 }
 
 
-likelihoodKatzfuss <- function(kappa,sigma2,taue){
+likelihoodKatzfuss <- function(beta,kappa,sigma2,taue){
   
   matrices_r <- WQXYmakerMatern()
   Wlist <- matrices_r$W
@@ -86,12 +86,12 @@ likelihoodKatzfuss <- function(kappa,sigma2,taue){
         Sigma_m <- Xlist[[M]][[jm]]%*%Wlist[[M]][[M]][[jm]]%*%Xlist[[M]][[jm]]+(1/taue)*diag(dim(Xlist[[M]][[jm]])[1])
         Sigma_m_inv <- chol2inv(chol(Sigma_m))
         dj[[M]][[jm]] <- log(det(Sigma_m))
-        uj[[M]][[jm]] <- t(Ylist[[M]][[jm]])%*% Sigma_m_inv %*% Ylist[[M]][[jm]]
+        uj[[M]][[jm]] <- t(Ylist[[M]][[jm]]-Xlist[[M]][[jm]]%*%rep(beta,dim(Xlist[[M]][[jm]])[1]))%*% Sigma_m_inv %*% (Ylist[[M]][[jm]]-Xlist[[M]][[jm]]%*%rep(beta,dim(Xlist[[M]][[jm]])[1]))
         Atilde[[M]][[jm]] <- list()
         omegatilde[[M]][[jm]] <- list()
         for(l in 1:M){
           Atilde[[M]][[jm]][[l]] <- list()
-          omegatilde[[M]][[jm]][[l]] <- t(Xlist[[M]][[jm]]%*%Wlist[[M]][[l]][[jm]])%*%Sigma_m_inv%*%Ylist[[M]][[jm]]
+          omegatilde[[M]][[jm]][[l]] <- t(Xlist[[M]][[jm]]%*%Wlist[[M]][[l]][[jm]])%*%Sigma_m_inv%*%(Ylist[[M]][[jm]]-Xlist[[M]][[jm]]%*%rep(beta,dim(Xlist[[M]][[jm]])[1]))
           for(k in l:M){
             Atilde[[M]][[jm]][[l]][[k]] <- t(Xlist[[M]][[jm]]%*%Wlist[[M]][[k]][[jm]])%*%Sigma_m_inv%*%Xlist[[M]][[jm]]%*%Wlist[[M]][[l]][[jm]]
             #            omegatilde[[M]][[jm]][[l]][[k]] <- t(Xlist[[M]][[jm]]%*%Wlist[[M]][[k]][[jm]])%*%Sigma_m_inv%*%Ylist[[M]][[jm]]

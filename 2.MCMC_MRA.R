@@ -32,13 +32,12 @@ corrMaternduo_fields <- function(points_sf1,points_sf2,variance) {
 kappa <- 1.5
 sigma2 <- 1/4
 taue <- 1/4
-
+betas <- 1
 
 
 
 source('likelihoodK.R')
-res <- likelihoodKatzfuss(kappa,sigma2,taue)
-
+res <- likelihoodKatzfuss(betas,kappa,sigma2,taue)
 
 #dj_1,...,j_M    *X
 
