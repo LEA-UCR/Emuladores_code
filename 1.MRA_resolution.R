@@ -54,43 +54,6 @@ nr_n <- c(1,2,2,2)
 
 # ¿Cuántas veces queremos partir el dominio y cuál es el borde?
 nn <- length(nc)
-# tic()
-# for(i in 1:nn){
-#   globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
-#                        ymx=bordes[4],val=partitions[[i]],
-#                        crs=crsglobal,ncols=nc[[i]],nrows=nr[[i]])
-#   
-#   indicesglob[[i]]    <- raster::extract(globraster,globalpoints, 
-#                                          cellnumbers=TRUE)[,1]
-#   cellloc.glob[[i]]   <- rowColFromCell(globraster,indicesglob[[i]])
-#   
-#   
-#   indicesreg[[i]]     <- raster::extract(globraster,regionalpoints, 
-#                                          cellnumbers=TRUE)[,1]
-#   cellloc.reg[[i]]    <- rowColFromCell(globraster,indicesreg[[i]])
-#   
-#   indicesglobtemp <- as.data.frame(cellloc.glob[[i]]) %>% 
-#     mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
-#     mutate(rown=ifelse(rown==0,nr_n[i],rown),
-#            coln=ifelse(coln==0,nc_n[i],coln))
-#   
-#   indicesregtemp <- as.data.frame(cellloc.reg[[i]]) %>% 
-#     mutate(rown = row%%nr_n[i],coln=col%%nc_n[i]) %>% 
-#     mutate(rown=ifelse(rown==0,nr_n[i],rown),
-#            coln=ifelse(coln==0,nc_n[i],coln))
-#   
-#   indexmatrix <- as.data.frame(expand.grid(1:nr_n[i],1:nc_n[i]))
-#   indexmatrix <- indexmatrix %>% dplyr::select(rown=Var1,coln=Var2)%>%
-#     mutate(celln=1:(nr_n[i]*nc_n[i]))
-#   
-#   indicesglobK[[i]] <- as.numeric((indicesglobtemp %>% 
-#                             left_join(indexmatrix,by = c('rown','coln')) %>%
-#                             dplyr::select(celln))$celln)
-#   indicesregK[[i]] <- as.numeric((indicesregtemp %>% 
-#                             left_join(indexmatrix,by = c('rown','coln')) %>%
-#                             dplyr::select(celln))$celln)
-# }
-# toc()  ##22s
 
 f <- function(nc, nr, partitions, nc_n, nr_n, bordes, crsglobal){
   
@@ -130,11 +93,11 @@ f <- function(nc, nr, partitions, nc_n, nr_n, bordes, crsglobal){
   return(list(indicesregK, indicesglobK))
 }
 
-tic()
-INDICES <- pmap(list(nc, nr, partitions,nc_n,nr_n ), f,bordes = bordes, crsglobal = crsglobal)
+
+INDICES <- purrr::pmap(list(nc, nr, partitions,nc_n,nr_n ), f,bordes = bordes, crsglobal = crsglobal)
 indicesregK <- list(INDICES[[1]][[1]],INDICES[[2]][[1]],INDICES[[3]][[1]], INDICES[[4]][[1]])
-indicesglobk<- list(INDICES[[1]][[2]],INDICES[[2]][[2]],INDICES[[3]][[2]], INDICES[[4]][[2]])
-toc()
+indicesglobK<- list(INDICES[[1]][[2]],INDICES[[2]][[2]],INDICES[[3]][[2]], INDICES[[4]][[2]])
+
 rm(INDICES)
 
 
@@ -263,20 +226,36 @@ knots3_tb <- as.data.frame(st_coordinates(knots3))
 colnames(knots1_tb) <- colnames(knots2_tb) <- 
   colnames(knots3_tb) <- c('longlo','latglo','ID')
 
-knots1_tb <- knots1_tb %>% left_join(regionalpoints) %>% 
-  distinct(longlo,latglo,.keep_all = T)
-knots2_tb <- knots2_tb %>% left_join(regionalpoints)%>% 
-  distinct(longlo,latglo,.keep_all = T)
-knots3_tb <- knots3_tb %>% left_join(regionalpoints)%>% 
-  distinct(longlo,latglo,.keep_all = T)
-knots4_tb <-regionalpoints
 
-knotsMRA <- list()
+knots_tb <- list(knots1_tb,knots2_tb,knots3_tb)
 
-knotsMRA[[1]] <- st_sf(knots1_tb)
-knotsMRA[[2]] <- st_sf(knots2_tb)
-knotsMRA[[3]] <- st_sf(knots3_tb)
-knotsMRA[[4]] <- st_sf(knots4_tb)
+join_knots <- function(knts){
+  K <- knts %>% left_join(regionalpoints) %>% 
+    distinct(longlo,latglo,.keep_all = T)
+  return(K)
+}
+
+knots_tb <- map(knots_tb, join_knots)
+
+ # knots1_tb <- knots1_tb %>% left_join(regionalpoints) %>% 
+ #   distinct(longlo,latglo,.keep_all = T)
+ # knots2_tb <- knots2_tb %>% left_join(regionalpoints)%>% 
+ #   distinct(longlo,latglo,.keep_all = T)
+ # knots3_tb <- knots3_tb %>% left_join(regionalpoints)%>% 
+ #   distinct(longlo,latglo,.keep_all = T)
+ # knots4_tb <-regionalpoints
+
+knots_tb <- list(knots_tb[[1]],knots_tb[[2]], knots_tb[[3]],regionalpoints )
+
+# knotsMRA <- list()
+
+knotsMRA <- map(knots_tb, st_sf)
+
+# knotsMRA[[1]] <- st_sf(knots1_tb)
+# knotsMRA[[2]] <- st_sf(knots2_tb)
+# knotsMRA[[3]] <- st_sf(knots3_tb)
+# knotsMRA[[4]] <- st_sf(knots4_tb)
+
 
 ## remove all values that are duplicated
 ## I need: bordes, globalpoints, indicesW, knotsMRA, nn, regionalpoints,
