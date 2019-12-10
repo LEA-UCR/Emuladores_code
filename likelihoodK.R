@@ -18,10 +18,10 @@ WQXYmakerMatern <- function(){
         filter(.data[[paste0('iP',M)]]==jm)
       Xlist[[M]][[jm]] <- diag((regionalpoints %>% 
                                   filter(.data[[paste0('iP',M)]]==jm) %>%
-                                  select(Xcov))$Xcov)
+                                  dplyr::select(Xcov))$Xcov)
       Ylist[[M]][[jm]] <- (regionalpoints %>%
                              filter(.data[[paste0('iP',M)]]==jm) %>%
-                             select(Yresp))$Yresp
+                             dplyr::select(Yresp))$Yresp
       indicesjerarq <- Qlist[[M]][[jm]] %>% 
         dplyr::select(starts_with('iP'))%>%
         st_drop_geometry()
@@ -104,7 +104,7 @@ likelihoodKatzfuss <- function(beta,kappa,sigma2,taue){
         omega[[M]][[jm]] <- vector(mode = 'list',length = M)
         jmp1 <- indicesW[[M+1]] %>% left_join(indicesW[[M]]) %>%
           filter(.data[[paste0('iP',M)]]==jm) %>%
-          select(.data[[paste0('iP',M+1)]])
+          dplyr::select(.data[[paste0('iP',M+1)]])
         for(l in 1:M){
           A[[M]][[jm]][[l]] <- vector(mode = 'list',length = M)
           omega[[M]][[jm]][[l]] <- 0

@@ -35,7 +35,6 @@ taue <- 1/4
 betas <- 1
 
 
-
 source('likelihoodK.R')
 res <- likelihoodKatzfuss(betas,kappa,sigma2,taue)
 
