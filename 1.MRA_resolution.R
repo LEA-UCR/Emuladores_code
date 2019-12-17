@@ -283,6 +283,5 @@ knotsMRA[[4]] <- st_sf(knots4_tb)
 ## remove all values that are duplicated
 ## I need: bordes, globalpoints, indicesW, knotsMRA, nn, regionalpoints,
 
-rm(list=ls()[! ls() %in% c("bordes", "globalpoints", "indicesW", "knotsMRA",
-                           "nn", "regionalpoints")])
+rm(list=ls()[! ls() %in% c("bordes", "globalpoints", "indicesW", "knotsMRA","nn", "regionalpoints")])
 
