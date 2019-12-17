@@ -14,15 +14,19 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
 }
 
 
-corrMaternduo_fields <- function(points_sf1,points_sf2,variance) {
+cExpMat <- function(points_sf1,points_sf2,type,range,variance,nu=1){
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
-  m <- matrix(0,nrow = dim(coords1)[1],ncol = dim(coords2)[1])
-  #if(identical(coords1,coords2)){
-  #  diag(m) <- variance
-  #}
-  m <- variance*stationary.cov(coords1,coords2,Covariance = 'Matern',
-                               Distance = 'rdist.earth')
+  if(type=='Exponential'){
+    m <- stationary.cov(coords1,coords2,Covariance = type,
+                        Distance = 'rdist.earth',
+                        theta = range,phi=variance)
+  }
+  if(type=='Matern'){
+    m <- stationary.cov(coords1,coords2,Covariance = type,
+                        Distance = 'rdist.earth',
+                        theta = range,phi=variance,nu=nu)
+  }
   return(m)
 }
 
