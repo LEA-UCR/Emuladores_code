@@ -1,6 +1,6 @@
 library(tictoc)
 source("1.MRA_resolution_general.R")
-source('covariances.R')
+source('../covariances.R')
 source('likelihoodK_general.R')
 
 

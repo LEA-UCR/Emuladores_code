@@ -187,11 +187,11 @@ colnames(knots3_tb) <- c('lon','lat','iP3')
 
 # iP hierarchy: needed to compute the loglikelihood recursively 
 knots1_tb <- knots1_tb
-tablapadres1 <- tablaindicesW %>% select(starts_with('iP')) %>%
-  select(-iP4,-iP3)%>% distinct()
+tablapadres1 <- tablaindicesW %>% dplyr::select(starts_with('iP')) %>%
+  dplyr::select(-iP4,-iP3)%>% distinct()
 knots2_tb <- knots2_tb %>% left_join(tablapadres1)
-tablapadres2 <- tablaindicesW %>% select(starts_with('iP')) %>%
-  select(-iP4)%>% distinct()
+tablapadres2 <- tablaindicesW %>% dplyr::select(starts_with('iP')) %>%
+  dplyr::select(-iP4)%>% distinct()
 knots3_tb <- knots3_tb %>% left_join(tablapadres2)
 knots4_tb <- hh #IMPORTANT: last level uses all the available data as knots
 
