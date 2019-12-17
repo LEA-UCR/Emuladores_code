@@ -12,11 +12,12 @@ load("datos/resolucion/domainfinal.Rdata")
 ## Cut a window:
 # 230 a 300 y de 30 a 60
 
-global<-final[final$lonval>240 &final$lonval<290
-              & final$latval>30 & final$latval<60,c("lonval","latval")]
-regional<-t(aa)[t(aa)[,1]>30&t(aa)[,1]<60
-                &t(aa)[,2]>240&t(aa)[,2]<290,2:1]
+  global<-final[final$lonval>240 &final$lonval<290
+                & final$latval>30 & final$latval<60,c("lonval","latval")]
+  regional<-t(aa)[t(aa)[,1]>30&t(aa)[,1]<60
+                  &t(aa)[,2]>240&t(aa)[,2]<290,2:1]
 
+ 
 N <- dim(global)[1] #Number of spatial points global
 n <- dim(regional)[1] #Number of spatial points regional
 k <- 1 #Observations through time 
@@ -48,8 +49,8 @@ proj4string(globalpoints) <- '+proj=longlat +datum=WGS84'
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 
 
-hh2<-gBuffer(hh, width=0.71, quadsegs=1, 
-             capStyle='SQUARE', byid=T)
+hh2<-gBuffer(hh, width=0.71, quadsegs=1,
+            capStyle='SQUARE', byid=T)
 
 plot(hh2)
 points(regionalpoints, cex=0.1)
