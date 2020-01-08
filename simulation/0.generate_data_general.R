@@ -7,13 +7,13 @@ library(plotly)
 set.seed(1)
 
 #Grid size and definition
-nlat <- 30
-nlon <- 30
-gridbase <- expand.grid(lon=seq(230,300,length.out = nlon),
-                        lat=seq(30,60,length.out = nlat))
+nlat <- 20
+nlon <- 20
+gridbase <- expand.grid(lon=seq(0,1,length.out = nlon),
+                        lat=seq(0,1,length.out = nlat))
 
-gridlist <- list(x=seq(230,300,length.out = nlon),
-                 y=seq(30,60,length.out = nlat))
+gridlist <- list(x=seq(0,1,length.out = nlon),
+                 y=seq(0,1,length.out = nlat))
 
 
 n <- dim(gridbase)[1] #Number of spatial points
@@ -44,8 +44,8 @@ ncov <- 1
 
 #Covariance structure parameters
 nu <- 1.5
-range <- 4
-sigma2 <- 1
+range <- 0.5
+sigma2 <- 0.5
 type='Exponential'
 
 #Spatial parameter generation
@@ -57,8 +57,14 @@ taue <- 20 ##Precision parameter for error
 error <- rnorm(n*k, 0, sqrt(1/taue)) ### error in the observation
 
 #Covariates and dependent variable 
-X <- runif(n*k)
+#X <- runif(n*k)
+X <- 1
 y <- beta0+(beta1+beta1s)*X+error ##Simulate the observations
+
+
+
+
+
 
 dataset<-tibble(Yresp=y,Xcov=X) 
 

@@ -1,39 +1,10 @@
 library(tictoc)
-source("simulation/1.MRA_resolution_general.R")
-source('covariances.R')
-source('simulation/likelihoodK_general.R')
+source("1.MRA_resolution_general.R")
+source('../covariances.R')
+source('likelihoodK_general.R')
 library(MCMCpack)
-
-# values used to generate the data
-nu <- 1.5
-range <- 4
-sigma2 <- 1
-taue <- 20
-betas <- 1
-type='Exponential'
-
-
-tic()
-res <- likelihoodKatzfuss(betas,kappa,sigma2,taue)
-toc()
-
-#dj_1,...,j_M    *X
-
-#uj_1,...,j_M    *X
-
-#Atilde k,l j_1,...,j_M     *X
-#omegatilde k,l j_1,...,j_M      *X
-
-#A k,l j_1,...,j_M-1
-#omega k j_1,...,j_M-1
-
-#Ktilde j_1,...,j_M-1
-
-#dj_1,...,j_M-1
-#uj_1,...,j_M-1
-
-#Atilde k,l j_1,...,j_M-1
-#omegatilde k j_1,...,j_M-1
+library(truncdist)
+library(invgamma)
 
 #### Metropolis Hastings
 
@@ -47,29 +18,36 @@ SaveResults <- list()
 
 
 # initial values
-kappa <- 1.5
-prec <- 4
+nu <- 1.5
+range <- 0.5
+sigma2 <- 0.5
+taue <- 20
 betas <- 1
-sigma2 <- 1/4
+type='Exponential'
+
 
 # storage space
-kappa.v <- rep(kappa,TotIter)
-prec.v <- rep(prec,TotIter)
-betas.v <- rep(betas,TotIter)
-
+nu.v <- rep(nu,TotIter)
+range.v <- rep(range,TotIter)
+taub.v <- rep(1/sigma2,TotIter)
+taue.v <- rep(taue,TotIter)
+beta.v <- rep(betas,TotIter)
+tc.v <- rep(0,TotIter)
+sd.v <- rep(0.01,TotIter)
 ##################
 # L functions    #
 ##################
 
-## log (Likelihood times prior)
-f <- function(kappa,betas,taub,taue=1,a=1,b=0,m=2) {
-  loglike <- likelihoodKatzfuss(betas,kappa,sigma2,taue=1) #cambiar sigma2 por taub
-  logpriorbeta <- (0.5*log(taub)-0.5*taub*(betas - m)^2) #1 beta
+## log (-2*Likelihood times prior)
+f <- function(nu,range,taub,taue=20,betas,type,a=0,b=1,m=2) {
+  loglike <- likelihoodKatzfuss(nu,range,1/taub,taue,betas,type)
+  #loglike <- likelihoodGaussian(nu,range,1/taub,taue,betas,type) #cambiar sigma2 por taub
+  logpriorbeta <- -log(taub)+taub*(betas - m)^2 #1 beta
   ## incluir previas para taue y taub (según Demirhan et al). por ahora está en términos de la variancia, y no de la precisión
-  logpriortaus <- log(dinvgamma(taub,shape=0.001, scale=1))
+  logpriortaus <- -2*log(dinvgamma(taub,shape=0.001, scale=1))
   # fijar k y theta para una previa de precisión Gamma.
-  logpriorkappa <- log(a - b) # fijar hiperparámetros de acuerdo al 1/rango
-  logprior <- logpriorbeta+logpriortaus+logpriorkappa
+  logpriorrange <- -2*log(b - a) # fijar hiperparámetros de acuerdo al 1/rango
+  logprior <- logpriorbeta+logpriortaus+logpriorrange
   like <- loglike+logprior
   return(like)
 }
@@ -93,24 +71,38 @@ f <- function(kappa,betas,taub,taue=1,a=1,b=0,m=2) {
 #3. With probability set min(1,r), set \theta_i = \theta_{cand}.
 #Otherwise, set \theta_i = \theta_{i-1}
 
+tc.v[1] <- f(nu,range.v[1],taub.v[1],taue,beta.v[1],type)
 for (t in 2:TotIter) { 
   
   ## Candidate distribution for kappa,sigma2,beta
-  kappa.n <- kappa.v[t-1]+0.01*rnorm(1,0,1) ## proposals
-  prec.n <- prec.v[t-1]+0.01*rnorm(1,0,1) ## proposals
-  beta.n <- betas.v[t-1]+0.01*rnorm(1,0,1) ## proposals
-  tn <- f(kappa.n,beta.n,prec.n)
-  tc <- f(kappa.v[t-1],betas.v[t-1],prec.v[t-1])
+  #range.n <- range.v[t-1]+0.01*rnorm(1,0,1) ## proposals
+  range.n <- range.v[t-1]
+  #range.n <- rtrunc(1000,spec = 'invgamma',a = 0,b = 1,shape=1,scale=1)  
+  #taub.n <- taub.v[t-1]+0.01*rnorm(1,0,1) ## proposals
+  taub.n <- taub.v[t-1]
+  #if(is.na(sd(beta.v[1:(t-1)]))){
+  #  sd.v[t] <- 0.01
+  #}else{
+  #  sd.v[t] <- sd(beta.v[1:(t-1)])
+  #}
+         
+  beta.n <- beta.v[t-1]+sd.v[t]*rnorm(1,0,1) ## proposals
+  tn <- f(nu,range.n,taub.n,taue,beta.n,type)
   
   ## Decisión
-  if (log(u1[t]) <= tn-tc){
-    kappa.v[t] <- kappa.n; 
-    prec.v[t] <- prec.n; 
-    betas.v[t] <- beta.n}else
-    {kappa.v[t] <- kappa.v[t-1]; 
-    prec.v[t] <- prec.v[t-1]; 
-    betas.v[t] <- betas.v[t-1]; 
-    k1 <- k1+1 }
+  decision <- min(0,tn-tc.v[t-1])
+  show(decision)
+  if (log(u1[t]) <= decision){
+    range.v[t] <- range.n; 
+    taub.v[t] <- taub.n; 
+    beta.v[t] <- beta.n;
+    tc.v[t] <- tn;
+    k1 <- k1+1 }else
+    {range.v[t] <- range.v[t-1]; 
+    taub.v[t] <- taub.v[t-1]; 
+    beta.v[t] <- beta.v[t-1];
+    tc.v[t] <- tc.v[t-1]
+    }
   
   ## Save values (tunning and/or sampling)
   print(k1)

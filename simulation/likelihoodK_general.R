@@ -46,7 +46,7 @@ WQXYmaker <- function(){
                                          Qlist[[l]][[jl]],
                                          type,
                                          range,
-                                         sigma2)-factorW
+                                         sigma2,nu)-factorW
         #        Wlist[[M]][[l]][[jm]] <- corrMaternduo_fields(Qlist[[M]][[jm]],
         #                                               Qlist[[l]][[jl]],sigma2)-factorW
         
@@ -59,7 +59,7 @@ WQXYmaker <- function(){
 }
 
 
-likelihoodKatzfuss <- function(beta,kappa,sigma2,taue,type){
+likelihoodKatzfuss <- function(nu,range,sigma2,taue,beta,type){
   
   matrices_r <- WQXYmaker()
   Wlist <- matrices_r$W
@@ -142,6 +142,17 @@ likelihoodKatzfuss <- function(beta,kappa,sigma2,taue,type){
       }
     }
   }
-  m2logv <- sum(unlist(dj))+sum(unlist(uj))
+    m2logv <- sum(unlist(dj))+sum(unlist(uj))
+  return(m2logv)
+}
+
+likelihoodGaussian <- function(nu,range,sigma2,taue,betas,type){
+  Sigma <- cExpMat(hh,hh,type,range,sigma2,nu)
+  Y <- hh$Yresp
+  X <- hh$Xcov
+  XX <- diag(X)
+  Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
+  m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
+    t(Y-betas*X)%*%Sigmainv%*%(Y-betas*X)
   return(m2logv)
 }
