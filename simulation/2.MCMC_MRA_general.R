@@ -8,7 +8,7 @@ library(invgamma)
 
 #### Metropolis Hastings
 
-# Variables:
+# Variables:  
 js <- jb <- k1 <- 0
 BurnIn <- 1000
 TotIter <- 10000
@@ -33,15 +33,15 @@ taub.v <- rep(1/sigma2,TotIter)
 taue.v <- rep(taue,TotIter)
 beta.v <- rep(betas,TotIter)
 tc.v <- rep(0,TotIter)
-sd.v <- rep(0.01,TotIter)
+sd.v <- rep(0.001,TotIter)
 ##################
 # L functions    #
 ##################
 
 ## log (-2*Likelihood times prior)
 f <- function(nu,range,taub,taue=20,betas,type,a=0,b=1,m=2) {
-  loglike <- likelihoodKatzfuss(nu,range,1/taub,taue,betas,type)
-  #loglike <- likelihoodGaussian(nu,range,1/taub,taue,betas,type) #cambiar sigma2 por taub
+  #loglike <- likelihoodKatzfuss(nu,range,1/taub,taue,betas,type)
+  loglike <- likelihoodGaussian(nu,range,1/taub,taue,betas,type) #cambiar sigma2 por taub
   logpriorbeta <- -log(taub)+taub*(betas - m)^2 #1 beta
   ## incluir previas para taue y taub (según Demirhan et al). por ahora está en términos de la variancia, y no de la precisión
   logpriortaus <- -2*log(dinvgamma(taub,shape=0.001, scale=1))
@@ -72,25 +72,34 @@ f <- function(nu,range,taub,taue=20,betas,type,a=0,b=1,m=2) {
 #Otherwise, set \theta_i = \theta_{i-1}
 
 tc.v[1] <- f(nu,range.v[1],taub.v[1],taue,beta.v[1],type)
+Sn <- 0.001*diag(3)
+alphax <- 0.234
 for (t in 2:TotIter) { 
   
   ## Candidate distribution for kappa,sigma2,beta
   #range.n <- range.v[t-1]+0.01*rnorm(1,0,1) ## proposals
-  range.n <- range.v[t-1]
+  #range.n <- range.v[t-1]
   #range.n <- rtrunc(1000,spec = 'invgamma',a = 0,b = 1,shape=1,scale=1)  
   #taub.n <- taub.v[t-1]+0.01*rnorm(1,0,1) ## proposals
-  taub.n <- taub.v[t-1]
+  #taub.n <- taub.v[t-1]
   #if(is.na(sd(beta.v[1:(t-1)]))){
-  #  sd.v[t] <- 0.01
+  #  sd.v[t] <- 0.001
   #}else{
   #  sd.v[t] <- sd(beta.v[1:(t-1)])
   #}
-         
-  beta.n <- beta.v[t-1]+sd.v[t]*rnorm(1,0,1) ## proposals
+  
+  Un <- rnorm(3,0,1)
+  Xn <- c(beta.v[t-1],range.v[t-1],taub.v[t-1]) 
+  Yn <- Xn+Sn%*%Un
+  
+  beta.n <- Yn[1] 
+  range.n <- Yn[2]   
+  taub.n <- Yn[3]
   tn <- f(nu,range.n,taub.n,taue,beta.n,type)
   
   ## Decisión
   decision <- min(0,tn-tc.v[t-1])
+  alphan <- exp(decision)
   show(decision)
   if (log(u1[t]) <= decision){
     range.v[t] <- range.n; 
@@ -103,7 +112,10 @@ for (t in 2:TotIter) {
     beta.v[t] <- beta.v[t-1];
     tc.v[t] <- tc.v[t-1]
     }
-  
+  ##Update according to Vihola 2012
+  SSn <- Sn %*% (diag(3)+(1/t)*(alphan-alphax)*Un%*%t(Un)/
+                   (norm(Un,'2')^2)) %*% t(Sn) 
+  Sn <- t(chol(SSn))
   ## Save values (tunning and/or sampling)
   print(k1)
 }

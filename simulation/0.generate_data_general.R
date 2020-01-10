@@ -57,8 +57,8 @@ taue <- 20 ##Precision parameter for error
 error <- rnorm(n*k, 0, sqrt(1/taue)) ### error in the observation
 
 #Covariates and dependent variable 
-#X <- runif(n*k)
-X <- 1
+X <- runif(n*k)
+#X <- 1
 y <- beta0+(beta1+beta1s)*X+error ##Simulate the observations
 
 
