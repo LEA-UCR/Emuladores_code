@@ -12,15 +12,32 @@ crsglobal <- CRS('+proj=longlat +datum=WGS84')
 
 # MRA definitions: levels and partitions (4 levels and 
 # 4 partitions: default)
-partitions <- list(1,
-                   c(1:4),
-                   seq(1,16,1), 
-                   seq(1,64,1))
-length(partitions) # how many levels
-nc <- list(1, 2, 4, 8)
-nr <- list(1, 2, 4, 8)
-nc_n <- c(1,2,2,2) 
-nr_n <- c(1,2,2,2) 
+
+nlevelsMRA <- 4
+npartitions <- 4
+npartitions_r <- 2
+npartitions_c <- npartitions/npartitions_r
+partitions <- list()
+nc <- nr <- NULL
+nc_n <- nr_n <- NULL
+
+for(i in 1:nlevelsMRA){
+  partitions[[i]] <- seq(1,npartitions^(i-1))
+  nc[i] <- npartitions_c^(i-1)
+  nr[i] <- npartitions_r^(i-1)
+}
+nc_n <- c(1,rep(npartitions_c,nlevelsMRA-1))
+nr_n <- c(1,rep(npartitions_r,nlevelsMRA-1))
+
+# partitions <- list(1,
+#                    c(1:4),
+#                    seq(1,16,1), 
+#                    seq(1,64,1))
+# length(partitions) # how many levels
+# nc <- list(1, 2, 4, 8)
+# nr <- list(1, 2, 4, 8)
+# nc_n <- c(1,2,2,2) 
+# nr_n <- c(1,2,2,2) 
 nn <- length(nc)
 
 
@@ -170,6 +187,7 @@ create_knots <- function(partition, knots){
 
 # Number of knots according to Katzfuss et al, 2017.
 nknots <- floor(dim(dataset)[1]/(4^4))+1
+#nknots <- 5
 show(paste0('El numero de nodos X particion es: ',nknots))
 
 # Random generation of knots per MRA level
