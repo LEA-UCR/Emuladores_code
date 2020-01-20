@@ -156,7 +156,7 @@ hh <- hh %>% bind_cols(indicesregK)
 
 #Random generation of MRA knots 
 generate_samples <- function(data,knots) 
-  suppressMessages(st_sample(st_as_sfc(st_bbox(data)), size = knots))
+      suppressMessages(st_sample(st_as_sfc(st_bbox(data)), size = knots))
 
 #Random generation of MRA knots and partition identification 
 create_knots <- function(partition, knots){
@@ -186,8 +186,8 @@ create_knots <- function(partition, knots){
 }
 
 # Number of knots according to Katzfuss et al, 2017.
-nknots <- floor(dim(dataset)[1]/(4^4))+1
-#nknots <- 5
+#nknots <- floor(dim(dataset)[1]/(4^4))+1
+nknots <- 10
 show(paste0('El numero de nodos X particion es: ',nknots))
 
 # Random generation of knots per MRA level
@@ -220,6 +220,8 @@ knotsMRA[[1]] <- st_as_sf(knots1_tb,coords = c(1,2))
 knotsMRA[[2]] <- st_as_sf(knots2_tb,coords = c(1,2))
 knotsMRA[[3]] <- st_as_sf(knots3_tb,coords = c(1,2))
 knotsMRA[[4]] <- knots4_tb
+
+hh <- hh %>% arrange(iK1,iK2,iK3,iK4)
 
 ## remove all values that are duplicated
 rm(list=ls()[! ls() %in% c("bordes","indicesW", "knotsMRA",
