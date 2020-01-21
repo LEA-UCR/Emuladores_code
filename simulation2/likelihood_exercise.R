@@ -82,20 +82,20 @@ par(mfrow=c(1,3))
 aa<-matrix(results$M1,length(unique(results$taue)),
            length(unique(results$taub)))
 image.plot(x = unique(results$taub), y = unique(results$taue),
-             z = t(aa), main="Minimizing m2logv: Likelihood")
+             z = t(aa), main="Maximizing logv: Likelihood")
 abline (v=10,h=1)
 
 aa<-matrix(results$M2,length(unique(results$taue)),
            length(unique(results$taub)))
 image.plot(x = unique(results$taub), y = unique(results$taue),
-           z = t(aa), main="Minimizing m2logv: Banerjee")
+           z = t(aa), main="Maximizing logv: Banerjee")
 abline (v=10,h=1)
 
 aa<-matrix(results$M3,length(unique(results$taue)),
            length(unique(results$taub)))
 aa<-ifelse(aa==Inf,0,aa)
 image.plot(x = unique(results$taub), y = unique(results$taue),
-           z = t(aa), main="Minimizing m2logv: FSA")
+           z = t(aa), main="Maximizing logv: FSA")
 abline (v=10,h=1)
 
 

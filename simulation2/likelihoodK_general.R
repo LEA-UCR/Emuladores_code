@@ -52,7 +52,7 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Sigma <- cExpMat(hh,hh,type,phi,sigma2,nu)
   Kappa <- Blockmatrix(hh$iK2)
   Sigmae <- (Sigma-Sigmaw)*Kappa
-  XSigmae <- t(XX)%*%Sigmae%*%XX+sigma2*diag(dim(Sigmae)[1])
+  XSigmae <- t(XX)%*%Sigmae%*%XX+(1/taue)*diag(dim(Sigmae)[1])
   library(Matrix)
   XSigmae <- as(XSigmae ,'dgCMatrix')
   blocks <- unique(ExtractBlocks(XSigmae))
