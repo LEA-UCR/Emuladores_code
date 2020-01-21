@@ -98,8 +98,17 @@ image.plot(x = unique(results$taub), y = unique(results$taue),
            z = t(aa), main="Maximizing logv: FSA")
 abline (v=10,h=1)
 
-
-library(plotly)
-df = as.data.frame(data)
-plot_ly(df, x = taub, y = taue, z = M1, group = taub, 
-        type = "scatter3d", mode = "lines") 
+## time
+library(tictoc)
+tic()
+M1(parameters[5,])
+toc()
+# 1.182 sec elapsed
+tic()
+M2(parameters[5,])
+toc()
+# 0.771 sec elapsed
+tic()
+M3(parameters[5,])
+toc()
+# 0.901 sec elapsed
