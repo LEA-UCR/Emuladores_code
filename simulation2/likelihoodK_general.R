@@ -5,9 +5,12 @@ likelihoodBanerjee <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Y <- hh$Y
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
-  } else {X <- hh$X}
+    XX <- diag(X)
+    muhat <- beta0+beta1*X
+  } else {X <- hh$X
   XX <- diag(X)
   muhat <- beta0+beta1*X
+  }
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
@@ -43,9 +46,13 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Y <- hh$Y
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
-  } else {X <- hh$X}
+    XX <- diag(X)
+    muhat <- beta0+beta1*X
+  } else {X <- hh$X
   XX <- diag(X)
   muhat <- beta0+beta1*X
+  }
+
   C <- cExpMat(knotsMRA[[1]],hh,type,phi,sigma2,nu)
   Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu)
   Sigmaw <- t(C) %*% chol2inv(chol(Cstar)) %*% C 
@@ -72,9 +79,13 @@ likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Y <- hh$Y
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
-  } else {X <- hh$X}
+    XX <- diag(X)
+    muhat <- beta0+beta1*X
+  } else {X <- hh$X
   XX <- diag(X)
   muhat <- beta0+beta1*X
+  }
+
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)

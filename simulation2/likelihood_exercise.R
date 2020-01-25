@@ -71,9 +71,12 @@ M3 <- function(param){
   m2logv<-likelihoodFSA_Block(nu,phi,beta0,beta1,sigma2,taue,model,type)
   return(m2logv)}
 
-resM1<-unlist(lapply(1:dim(parameters)[1],function(i)M1(parameters[i,])))
-resM2<-unlist(lapply(1:dim(parameters)[1],function(i)M2(parameters[i,])))
-resM3<-unlist(lapply(1:dim(parameters)[1],function(i)M3(parameters[i,])))
+resM1<-unlist(lapply(1:dim(parameters)[1],
+                     function(i)M1(parameters[i,])))
+resM2<-unlist(lapply(1:dim(parameters)[1],
+                     function(i)M2(parameters[i,])))
+resM3<-unlist(lapply(1:dim(parameters)[1],
+                     function(i)M3(parameters[i,])))
 
 results<-as_tibble(cbind(taue=parameters[,1],taub=parameters[,2],
                          M1=-resM1/2,M2=-resM2/2,M3=-resM3/2))
@@ -82,20 +85,26 @@ par(mfrow=c(1,3))
 aa<-matrix(results$M1,length(unique(results$taue)),
            length(unique(results$taub)))
 image.plot(x = unique(results$taub), y = unique(results$taue),
-             z = t(aa), main="Maximizing logv: Likelihood")
+             z = t(aa), main="Maximizing Gaussian Likelihood",
+           ylab=expression(tau^2*epsilon),
+           xlab=expression(tau^2*beta))
 abline (v=10,h=1)
 
 aa<-matrix(results$M2,length(unique(results$taue)),
            length(unique(results$taub)))
 image.plot(x = unique(results$taub), y = unique(results$taue),
-           z = t(aa), main="Maximizing logv: Banerjee")
+           z = t(aa), main="Maximizing Banerjee Likelihood",
+           ylab=expression(tau^2*epsilon),
+           xlab=expression(tau^2*beta))
 abline (v=10,h=1)
 
 aa<-matrix(results$M3,length(unique(results$taue)),
            length(unique(results$taub)))
 aa<-ifelse(aa==Inf,0,aa)
 image.plot(x = unique(results$taub), y = unique(results$taue),
-           z = t(aa), main="Maximizing logv: FSA")
+           z = t(aa), main="Maximizing FSA Likelihood",
+           ylab=expression(tau^2*epsilon),
+           xlab=expression(tau^2*beta))
 abline (v=10,h=1)
 
 ## time
@@ -103,12 +112,9 @@ library(tictoc)
 tic()
 M1(parameters[5,])
 toc()
-# 1.182 sec elapsed
 tic()
 M2(parameters[5,])
 toc()
-# 0.771 sec elapsed
 tic()
 M3(parameters[5,])
 toc()
-# 0.901 sec elapsed
