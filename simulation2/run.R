@@ -34,8 +34,8 @@ nn<-aa[[4]];hh<-aa[[5]]
 
 # initial values
 
-taub <- 1
-taue <- 10
+taub <- 10
+taue <- 1
 
 startvalue <- c(taub,taue)
 N <- dim(hh)[1]
@@ -63,7 +63,7 @@ f <- function(param) {
   #loglike <- likelihood(nu,phi,beta0,beta1,1/taub,taue,model,type)
   ## incluir previas para taue y taub (según Demirhan et al)
 
-  logpriortaue <- (dgamma(taub,shape=0.5, scale=2, log=T))
+  logpriortaue <- (dgamma(taue,shape=0.5, scale=2, log=T))
   #logpriortaue <- log(dinvgamma(taue,shape=5, scale=5))
   logpriortaub <- (dgamma(taub,shape=5, scale=2, log=T))
 
