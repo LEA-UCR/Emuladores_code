@@ -85,7 +85,6 @@ likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   XX <- diag(X)
   muhat <- beta0+beta1*X
   }
-
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)

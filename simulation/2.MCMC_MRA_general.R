@@ -20,8 +20,8 @@ SaveResults <- list()
 # initial values
 nu <- 1.5
 range <- 0.5
-sigma2 <- 0.5
-taue <- 20
+sigma2 <- 2
+taue <- 0.5
 betas <- 1
 type='Exponential'
 
@@ -101,6 +101,7 @@ for (t in 2:TotIter) {
   decision <- min(0,tn-tc.v[t-1])
   alphan <- exp(decision)
   show(decision)
+  #https://barumpark.com/blog/2019/Jacobian-Adjustments/
   if (log(u1[t]) <= decision){
     range.v[t] <- range.n; 
     taub.v[t] <- taub.n; 
