@@ -82,7 +82,9 @@ save(dataset, hh, file=paste0("sim_data/dataset",
                               model,type,i,".Rdata"))
 }
 
-lapply(1:100,function(i)function.to.gen.data("SVC","Exponential",i))
-lapply(1:100,function(i)function.to.gen.data("SVI","Exponential",i))
-lapply(1:100,function(i)function.to.gen.data("SVC","Matern",i))
-lapply(1:100,function(i)function.to.gen.data("SVI","Matern",i))
+nsimulations <- 100
+
+lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Exponential",i))
+lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Exponential",i))
+lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Matern",i))
+lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Matern",i))
