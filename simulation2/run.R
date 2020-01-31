@@ -63,9 +63,9 @@ f <- function(param) {
   #loglike <- likelihood(nu,phi,beta0,beta1,1/taub,taue,model,type)
   ## incluir previas para taue y taub (según Demirhan et al)
 
-  logpriortaue <- (dgamma(taue,shape=0.5, scale=2, log=T))
+  logpriortaue <- (dgamma(taue,shape=2, scale=0.1, log=T))
   #logpriortaue <- log(dinvgamma(taue,shape=5, scale=5))
-  logpriortaub <- (dgamma(taub,shape=5, scale=2, log=T))
+  logpriortaub <- (dgamma(taub,shape=2, scale=0.1, log=T))
 
   #logpriorphi <- dunif(phi,0.1,3,log=TRUE) 
   logprior <- logpriortaue+logpriortaub#+logpriorphi
@@ -78,7 +78,7 @@ f <- function(param) {
 ##################
 
 
-th <- c(0.01,0.1)
+th <- c(0.1,0.1)
 alphax <- 0.234
 
 proposalfunction <- function(param,i,th){
