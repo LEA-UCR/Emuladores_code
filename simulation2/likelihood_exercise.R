@@ -79,7 +79,6 @@ resM2<-unlist(lapply(1:dim(parameters)[1],
 resM3<-unlist(lapply(1:dim(parameters)[1],
                      function(i)M3(parameters[i,])))
 
-
 results<-as_tibble(cbind(taue=parameters[,1],taub=parameters[,2],
                          M1=-resM1/2,M2=-resM2/2,M3=-resM3/2))
 
@@ -95,18 +94,15 @@ abline (v=10,h=1)
 aa<-matrix(results$M2,length(unique(results$taue)),
            length(unique(results$taub)))
 image.plot(x = unique(results$taub), y = unique(results$taue),
-
            z = t(aa), main="Maximizing Banerjee Likelihood",
            ylab=expression(tau^2*epsilon),
            xlab=expression(tau^2*beta))
-
 abline (v=10,h=1)
 
 aa<-matrix(results$M3,length(unique(results$taue)),
            length(unique(results$taub)))
 aa<-ifelse(aa==Inf,0,aa)
 image.plot(x = unique(results$taub), y = unique(results$taue),
-
            z = t(aa), main="Maximizing FSA Likelihood",
            ylab=expression(tau^2*epsilon),
            xlab=expression(tau^2*beta))
@@ -123,4 +119,3 @@ toc()
 tic()
 M3(parameters[5,])
 toc()
-

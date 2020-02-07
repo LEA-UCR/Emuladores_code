@@ -62,11 +62,9 @@ f <- function(param) {
   else{loglike <- likelihoodFSA_Block(nu,phi,beta0,beta1,sigma2,taue,model,type)}
   #loglike <- likelihood(nu,phi,beta0,beta1,1/taub,taue,model,type)
   ## incluir previas para taue y taub (según Demirhan et al)
-
-  logpriortaue <- (dgamma(taue,shape=2, scale=0.1, log=T))
+  logpriortaue <- (dgamma(taub,shape=0.5, scale=2, log=T))
   #logpriortaue <- log(dinvgamma(taue,shape=5, scale=5))
-  logpriortaub <- (dgamma(taub,shape=2, scale=0.1, log=T))
-
+  logpriortaub <- (dgamma(taub,shape=5, scale=2, log=T))
   #logpriorphi <- dunif(phi,0.1,3,log=TRUE) 
   logprior <- logpriortaue+logpriortaub#+logpriorphi
   like <- -(loglike/2) +logprior
@@ -76,7 +74,6 @@ f <- function(param) {
 ##################
 # Main M-H  loop #
 ##################
-
 
 th <- c(0.1,0.1)
 alphax <- 0.234
@@ -119,11 +116,11 @@ run_metropolis_MCMC <- function(startvalue, iterations){
     }else{
       chain[i+1,] = chain[i,]
     }
-
     print(c(round(i,0), round(alphan,4), round(chain[i+1,],4)))
   }
   return(chain)
 }
+
 chain = run_metropolis_MCMC(startvalue, 40000)
 burnIn = 5000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance

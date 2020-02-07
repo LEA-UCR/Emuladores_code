@@ -77,14 +77,16 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
 likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Sigma <- cExpMat(hh,hh,type,phi,sigma2,nu)
   Y <- hh$Y
-  X <- hh$X
-  XX <- diag(X)
   if(model == "SVC"){
-    X <- as.vector(scale(X))
+    X <- as.vector(scale(hh$X))
+    XX <- diag(hh$X)
     muhat <- beta0+beta1*X
   } else {
+    X <- hh$X
+  XX <- diag(X)
   muhat <- beta0+beta1*X
   }
+
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
