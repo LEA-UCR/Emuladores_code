@@ -34,8 +34,8 @@ nn<-aa[[4]];hh<-aa[[5]]
 
 # initial values
 
-taub <- 1
-taue <- 10
+taub <- 10
+taue <- 1
 
 startvalue <- c(taub,taue)
 N <- dim(hh)[1]
@@ -75,7 +75,7 @@ f <- function(param) {
 # Main M-H  loop #
 ##################
 
-th <- c(0.01,0.1)
+th <- c(0.1,0.1)
 alphax <- 0.234
 
 proposalfunction <- function(param,i,th){
@@ -120,8 +120,9 @@ run_metropolis_MCMC <- function(startvalue, iterations){
   }
   return(chain)
 }
-chain = run_metropolis_MCMC(startvalue, 4000)
-burnIn = 50
+
+chain = run_metropolis_MCMC(startvalue, 40000)
+burnIn = 5000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 ### Summary: #######################
