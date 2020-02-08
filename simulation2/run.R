@@ -81,6 +81,7 @@ f <- function(param) {
 # Main M-H  loop #
 ##################
 
+
 th <- c(0.1,0.1,0.1)
 
 proposalfunction <- function(param,i,th){
@@ -134,9 +135,10 @@ run_metropolis_MCMC <- function(startvalue, iterations){
   return(chain)
 }
 
+
 set.seed(10)
 chain = run_metropolis_MCMC(startvalue, 40000)
-burnIn = 50
+burnIn = 5000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 ### Summary: #######################

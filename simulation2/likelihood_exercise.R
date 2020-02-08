@@ -71,6 +71,7 @@ M3 <- function(param){
   m2logv<-likelihoodFSA_Block(nu,phi,beta0,beta1,sigma2,taue,model,type)
   return(m2logv)}
 
+
 resM1<-unlist(lapply(1:dim(parameters)[1],
                      function(i)M1(parameters[i,])))
 resM2<-unlist(lapply(1:dim(parameters)[1],

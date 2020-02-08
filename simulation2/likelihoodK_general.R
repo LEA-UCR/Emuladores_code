@@ -79,9 +79,10 @@ likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Y <- hh$Y
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
-    XX <- diag(X)
+    XX <- diag(hh$X)
     muhat <- beta0+beta1*X
-  } else {X <- hh$X
+  } else {
+    X <- hh$X
   XX <- diag(X)
   muhat <- beta0+beta1*X
   }
