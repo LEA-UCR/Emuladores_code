@@ -115,8 +115,8 @@ create_knots <- function(partition, knots){
   return(points)
 }
 # Number of knots according to Katzfuss et al, 2017.
-nknots <- floor(dim(dataset)[1]/(4^4))+1
-#nknots <- 5
+# nknots <- floor(dim(dataset)[1]/(4^4))+1
+nknots <- 10
 show(paste0('El numero de nodos X particion es: ',nknots))
 # Random generation of knots per MRA level
 knots1<-create_knots(1,nknots)
