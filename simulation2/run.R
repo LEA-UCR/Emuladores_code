@@ -1,10 +1,10 @@
 # if you are working local, setwd in simulation2 first!
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
-  i<-1
-  type<-"Exponential"
+  i<-3
+  type<-"Matern"
   model<-"SVC"
-  analysis<-"M1"
+  analysis<-"M3"
   datasetfile=paste0("sim_data/dataset",model,type,i,".Rdata")
 } else {
   i<-args[1]
@@ -44,8 +44,8 @@ npar <- length(startvalue)
 
 # fixed
 taub <- 1
-taue <- 10
-nu <- 1.5
+taue <- 5
+nu <- 1
 
 
 ##################
@@ -57,21 +57,23 @@ f <- function(param) {
   beta0 <- param[2]
   beta1 <- param[3]
   sigma2 <- 1/taub
-  if(analysis=="M1"){
+  if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type)}
-  if(analysis=="M2"){
+                  beta1,sigma2,taue,model,type)
+    }else{
+      if (analysis=="M2"){
     loglike <- likelihoodBanerjee(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type)}
-  else{loglike <- likelihoodFSA_Block(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type)}
+                  beta1,sigma2,taue,model,type)
+      }else {
+    loglike <- likelihoodFSA_Block(nu,phi,beta0,
+                  beta1,sigma2,taue,model,type)}}
   #loglike <- likelihood(nu,phi,beta0,beta1,1/taub,taue,model,type)
   ## incluir previas para taue y taub (según Demirhan et al)
   #logpriortaue <- (dgamma(taub,shape=0.5, scale=2, log=T))
   #logpriortaub <- dgamma(taub,shape=5, scale=2, log=T)
-  logpriorphi <- dunif(phi,0.1,1.2,log=TRUE) 
-  logpriorbeta0 <- dnorm(0,0.1,log=TRUE)
-  logpriorbeta1 <- dnorm(1.5,1,log=TRUE)
+  logpriorphi <- dunif(phi,0.80,1.00,log=TRUE) 
+  logpriorbeta0 <- dnorm(0,1,log=TRUE)
+  logpriorbeta1 <- dnorm(2,1,log=TRUE)
   logprior <- logpriorphi+logpriorbeta0+logpriorbeta1
   like <- -(loglike/2) +logprior
   return(like)
@@ -82,16 +84,16 @@ f <- function(param) {
 ##################
 
 
-th <- c(0.1,0.1,0.1)
+th <- c(0.01,0.01,0.01)
 
 proposalfunction <- function(param,i,th){
   if (is.null(dim(param)[1])){
-    sd <- c(0.5,0.5,0.5)
+    sd <- th
     mu <- param
   }else{
     sd <- apply(param,2,sd)
     if (sum(sd) < 0.0001){
-      sd <- c(0.5,0.5,0.5)
+      sd <- th
     }else{
       sd <- sd
     }
@@ -100,7 +102,7 @@ proposalfunction <- function(param,i,th){
   #alpha <- c(mu[1]^2/(th[1]*sd[1]))
   #beta  <- c(th[1]*sd[1]/mu[1])
   Yn <- c(#rgamma(1,shape=alpha[1],scale=beta[1]),
-          runif(1,0.1,2),
+          runif(1,0.8,1),
           rnorm(1,mu[2],sd[2]),
           rnorm(1,mu[3],sd[3]))
   return(Yn)
@@ -130,16 +132,25 @@ run_metropolis_MCMC <- function(startvalue, iterations){
     }else{
       chain[i+1,] = chain[i,]
     }
-    print(c(round(i,0), round(alphan,4), round(chain[i+1,],4)))
+    if(i%%100==0){
+    print(round(c(i, alphan, chain[i+1,]),4))
+    }
   }
   return(chain)
 }
 
+print(datasetfile)
 
-set.seed(10)
-chain = run_metropolis_MCMC(startvalue, 40000)
-burnIn = 5000
+start_time <- Sys.time()
+
+set.seed(100)
+chain = run_metropolis_MCMC(startvalue, 4000)
+burnIn = 50
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
+
+end_time <- Sys.time()
+
+print(end_time-start_time)
 
 ### Summary: #######################
 

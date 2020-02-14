@@ -1,0 +1,228 @@
+> # if you are working local, setwd in simulation2 first!
+> args = commandArgs(trailingOnly=TRUE)
+> if(length(args)==0){
++   i<-3
++   type<-"Exponential"
++   model<-"SVC"
++   analysis<-"M1"
++   datasetfile=paste0("sim_data/dataset",model,type,i,".Rdata")
++ } else {
++   i<-args[1]
++   type<-args[2]
++   model<-args[3]
++   analysis<-args[4]
++   datasetfile=paste0("sim_data/dataset",model,type,i,".Rdata")
++ }
+> 
+> # i<-1:100
+> # type<-'Exponential', "Matern"
+> # model<-'SVC', "SVI"
+> # analysis<-"M1: likelihood", "M2: Banerjee", "M3: FSA"
+> 
+> source("1.MRA_resolution_general.R")
+> source('covariances.R')
+> source('likelihoodK_general.R')
+> library(MCMCpack)
+> library(truncdist)
+> library(invgamma)
+> 
+> aa<-gen_resolution(datasetfile)
+Joining, by = c("iK1", "iK2", "iK3")
+Joining, by = c("iK1", "iK2")
+Joining, by = "iK1"
+Joining, by = c("iK1", "iK2", "iK3", "iK4")
+[1] "El numero de nodos X particion es: 2"
+Joining, by = "iP2"
+Joining, by = "iP3"
+> bordes<-aa[[1]];indicesW<-aa[[2]];knotsMRA<-aa[[3]]
+> nn<-aa[[4]];hh<-aa[[5]]
+> 
+> #### Metropolis Hastings
+> 
+> # initial values
+> 
+> phi <- 0.9
+> beta0 <- 0
+> beta1 <- 2
+> 
+> startvalue <- c(phi,beta0,beta1)
+> N <- dim(hh)[1]
+> npar <- length(startvalue)
+> 
+> # fixed
+> taub <- 1
+> taue <- 5
+> nu <- 1
+> 
+> 
+> ##################
+> # L functions    #
+> ##################
+> 
+> f <- function(param) {
++   phi <- param[1]
++   beta0 <- param[2]
++   beta1 <- param[3]
++   sigma2 <- 1/taub
++   if (analysis=="M1"){
++     loglike <- likelihoodGaussian(nu,phi,beta0,
++                   beta1,sigma2,taue,model,type)
++     }else{
++       if (analysis=="M2"){
++     loglike <- likelihoodBanerjee(nu,phi,beta0,
++                   beta1,sigma2,taue,model,type)
++       }else {
++     loglike <- likelihoodFSA_Block(nu,phi,beta0,
++                   beta1,sigma2,taue,model,type)}}
++   #loglike <- likelihood(nu,phi,beta0,beta1,1/taub,taue,model,type)
++   ## incluir previas para taue y taub (según Demirhan et al)
++   #logpriortaue <- (dgamma(taub,shape=0.5, scale=2, log=T))
++   #logpriortaub <- dgamma(taub,shape=5, scale=2, log=T)
++   logpriorphi <- dunif(phi,0.80,1.00,log=TRUE) 
++   logpriorbeta0 <- dnorm(0,1,log=TRUE)
++   logpriorbeta1 <- dnorm(2,1,log=TRUE)
++   logprior <- logpriorphi+logpriorbeta0+logpriorbeta1
++   like <- -(loglike/2) +logprior
++   return(like)
++ }
+> 
+> ##################
+> # Main M-H  loop #
+> ##################
+> 
+> 
+> th <- c(0.01,0.01,0.01)
+> 
+> proposalfunction <- function(param,i,th){
++   if (is.null(dim(param)[1])){
++     sd <- th
++     mu <- param
++   }else{
++     sd <- apply(param,2,sd)
++     if (sum(sd) < 0.0001){
++       sd <- th
++     }else{
++       sd <- sd
++     }
++     mu <- param[i,]
++   }
++   #alpha <- c(mu[1]^2/(th[1]*sd[1]))
++   #beta  <- c(th[1]*sd[1]/mu[1])
++   Yn <- c(#rgamma(1,shape=alpha[1],scale=beta[1]),
++           runif(1,0.8,1),
++           rnorm(1,mu[2],sd[2]),
++           rnorm(1,mu[3],sd[3]))
++   return(Yn)
++   #return(list(Yn,alpha,beta))
++ }
+> 
+> #metrop(f, startvalue, 10000)
+> 
+> run_metropolis_MCMC <- function(startvalue, iterations){
++   chain = array(dim = c(iterations+1,npar))
++   chain[1,] = startvalue
++   for (i in 1:iterations){
++     # iterations <- 10000;i<-1
++     ## Decision
++     proposal <- proposalfunction(chain[c(1:i),],i,th)
++     #proposal <- proposal_all[[1]]
++     #alpha <- proposal_all[[2]]
++     #beta <- proposal_all[[3]]
++     probab <- min(0,
++     f(proposal) -
++     #+ dgamma(chain[i,1],alpha[1],beta[1], log=TRUE)-
++       f(chain[i,]) )
++     #- dgamma(proposal[1],alpha[1],beta[1], log=TRUE))
++     alphan <- exp(probab)
++     if (log(runif(1)) <= probab){
++       chain[i+1,] = proposal
++     }else{
++       chain[i+1,] = chain[i,]
++     }
++     if(i%%100==0){
++     print(round(c(i, alphan, chain[i+1,]),4))
++     }
++   }
++   return(chain)
++ }
+> 
+> print(datasetfile)
+[1] "sim_data/datasetSVCExponential3.Rdata"
+> 
+> start_time <- Sys.time()
+> 
+> set.seed(100)
+> chain = run_metropolis_MCMC(startvalue, 4000)
+[1] 100.0000   0.4882   0.9927   0.0979   1.9267
+[1] 200.0000   0.3570   0.8356  -0.0656   1.7749
+[1] 300.0000   0.2915   0.9361   0.0900   2.1390
+[1] 400.0000   0.8191   0.8982   0.1530   2.1050
+[1] 500.0000   0.5391   0.9483   0.1381   2.0509
+[1] 600.0000   0.0000   0.9484   0.1553   2.1341
+[1] 700.0000   0.1924   0.9430  -0.1493   1.6231
+[1] 800.0000   0.2361   0.8279  -0.0264   1.8845
+[1] 900.0000   0.0001   0.8790  -0.0284   1.8478
+[1] 1000.0000    0.0000    0.9247    0.1087    1.9584
+[1] 1100.0000    0.0001    0.8130    0.1567    2.0333
+[1] 1200.0000    1.0000    0.8296   -0.2285    1.6651
+[1] 1300.0000    0.0004    0.8500    0.1557    2.0116
+[1] 1400.0000    0.3566    0.8530    0.0875    1.8729
+[1] 1500.0000    0.8345    0.9051   -0.0486    1.9572
+[1] 1600.0000    0.2562    0.9992   -0.0784    1.8927
+[1] 1700.0000    0.0000    0.9381   -0.0741    1.7689
+[1] 1800.0000    0.1545    0.8455    0.1674    2.0674
+[1] 1900.0000    1.0000    0.9256    0.1812    2.0585
+[1] 2000.0000    0.1710    0.8766   -0.0844    1.8661
+[1] 2100.0000    0.8024    0.8891   -0.0217    1.8435
+[1] 2200.0000    0.0019    0.8165   -0.1436    1.7902
+[1] 2300.0000    1.0000    0.8637   -0.1879    1.7165
+[1] 2400.0000    0.2777    0.9672   -0.2159    1.6050
+[1] 2500.0000    0.0087    0.8426    0.0353    1.9236
+[1] 2600.0000    0.0000    0.8901    0.0312    1.9050
+[1] 2700.0000    0.0494    0.9421    0.0889    2.0234
+[1] 2800.0000    0.0005    0.9215   -0.2298    1.7797
+[1] 2900.0000    1.0000    0.8392    0.0223    1.9272
+[1] 3000.0000    0.5974    0.9527   -0.2377    1.6309
+[1] 3100.0000    0.0002    0.8015   -0.3122    1.6799
+[1] 3200.0000    0.0000    0.8561   -0.0215    1.8353
+[1] 3300.0000    0.0369    0.8918   -0.1140    1.7805
+[1] 3400.0000    0.0000    0.9279    0.2585    2.1516
+[1] 3500.0000    0.3419    0.8158    0.0425    2.0432
+[1] 3600.0000    0.1363    0.9874   -0.2115    1.6971
+[1] 3700.0000    0.0322    0.9666    0.0867    1.9736
+[1] 3800.0000    0.0005    0.9419   -0.0697    1.8705
+[1] 3900.0000    0.4750    0.9253    0.1654    2.0829
+[1] 4000.0000    0.7976    0.8750   -0.1341    1.7898
+> burnIn = 50
+> acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
+[1] 0.3616806
+> 
+> end_time <- Sys.time()
+> 
+> print(end_time-start_time)
+Time difference of 30.96798 mins
+> 
+> ### Summary: #######################
+> 
+> png(filename=paste0("sim_res/plot",analysis,model,type,i,".png"))
+> par(mfrow = c(2,npar))
+> hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of phi", xlab="True value = red line")
+> abline(v = mean(chain[-(1:burnIn),1]), col="green")
+> abline(v = 0.9, col="red" )
+> hist(chain[-(1:burnIn),2],nclass=30, main="Posterior of beta0", xlab="True value = red line")
+> abline(v = mean(chain[-(1:burnIn),2]), col="green")
+> abline(v = 0, col="red" )
+> hist(chain[-(1:burnIn),3],nclass=30, main="Posterior of beta1", xlab="True value = red line")
+> abline(v = mean(chain[-(1:burnIn),3]), col="green")
+> abline(v = 2, col="red" )
+> plot(chain[-(1:burnIn),1], type = "l", xlab="True value = red line" , main = "Chain values of phi", )
+> abline(h = 0.9, col="red" )
+> plot(chain[-(1:burnIn),2], type = "l", xlab="True value = red line" , main = "Chain values of beta0", )
+> abline(h = 0, col="red" )
+> plot(chain[-(1:burnIn),3], type = "l", xlab="True value = red line" , main = "Chain values of beta1", )
+> abline(h = 2, col="red" )
+> dev.off()
+null device 
+          1 
+> 
+> save(chain, file=paste0("sim_res/chain",analysis,model,type,i,".Rdata"))
