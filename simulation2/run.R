@@ -144,8 +144,8 @@ print(datasetfile)
 start_time <- Sys.time()
 
 set.seed(100)
-chain = run_metropolis_MCMC(startvalue, 4000)
-burnIn = 50
+chain = run_metropolis_MCMC(startvalue, 20000)
+burnIn = 5000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
