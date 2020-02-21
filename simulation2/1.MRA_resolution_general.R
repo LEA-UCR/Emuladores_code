@@ -83,7 +83,8 @@ tablaindicesW <- indicesW[[4]]%>%
   left_join(indicesW[[3]]) %>% left_join(indicesW[[2]]) %>%
   left_join(indicesW[[1]])
 #Update of data indexing with iP
-indicesregK <- indicesregK %>% left_join(tablaindicesW) 
+indicesregK <- indicesregK %>% left_join(tablaindicesW) %>%
+  mutate(indice_m=1:n())
 #Update of spatial structure with data indexing
 hh <- hh %>% bind_cols(indicesregK)
 #Random generation of MRA knots 
@@ -129,13 +130,13 @@ colnames(knots1_tb) <- c('lon','lat','iP1')
 colnames(knots2_tb) <- c('lon','lat','iP2')
 colnames(knots3_tb) <- c('lon','lat','iP3')
 # iP hierarchy: needed to compute the loglikelihood recursively 
-knots1_tb <- knots1_tb
+knots1_tb <- knots1_tb %>% mutate(indice_m=1:n())
 tablapadres1 <- tablaindicesW %>% dplyr::select(starts_with('iP')) %>%
-  dplyr::select(-iP4,-iP3)%>% distinct()
-knots2_tb <- knots2_tb %>% left_join(tablapadres1)
+  dplyr::select(-iP4,-iP3)%>% distinct() 
+knots2_tb <- knots2_tb %>% left_join(tablapadres1) %>% mutate(indice_m=1:n())
 tablapadres2 <- tablaindicesW %>% dplyr::select(starts_with('iP')) %>%
   dplyr::select(-iP4)%>% distinct()
-knots3_tb <- knots3_tb %>% left_join(tablapadres2)
+knots3_tb <- knots3_tb %>% left_join(tablapadres2) %>% mutate(indice_m=1:n())
 knots4_tb <- hh #IMPORTANT: last level uses all the available data as knots
 # Knots structure: 
 knotsMRA <- list()

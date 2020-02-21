@@ -1,5 +1,6 @@
 library(pdist)
 library(fields)
+library(RandomFields)
 
 corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   coords1 <- st_coordinates(points_sf1$geometry)
@@ -14,7 +15,7 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
 }
 
 
-cExpMat <- function(points_sf1,points_sf2,type,range,variance,nu=1){
+cExpMat <- function(points_sf1,points_sf2,type,range=1,variance,nu=1,alpha=1,beta=1){
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
   if(type=='Exponential'){
@@ -26,6 +27,10 @@ cExpMat <- function(points_sf1,points_sf2,type,range,variance,nu=1){
     m <- stationary.cov(coords1,coords2,Covariance = type,
                         Distance = 'rdist.earth',
                         theta = range,phi=variance,nu=nu)
+  }
+  if(type=='Cauchy'){
+    m <- rdist.earth(coords1,coords2)
+    m <- (1+abs(m)^alpha)^(-beta/alpha) #Gneiting & Schlather, 2004
   }
   return(m)
 }
