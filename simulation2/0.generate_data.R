@@ -17,11 +17,11 @@ beta0 <- 0 # intercept
 beta1 <- 2 # beta 1 (without spatial structure)
 #Number of covariates
 ncov <- 1
-taue <- 1 # Precision parameter for error
+taue <- 5 # Precision parameter for error
 #Covariance structure parameters
 nu <- 1  # (fixed)
 range <- 0.9 # range parameter
-taub <- 10 # 
+taub <- 1 # 
 sigma2 = 1/taub
 ### ############################ ###
 ###   Grid size and definition   ###
