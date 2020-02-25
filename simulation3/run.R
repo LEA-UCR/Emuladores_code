@@ -2,22 +2,24 @@
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   i<-1
-  type<-"Matern"
+  type<-"Cauchy"
   model<-"SVI"
   analysis<-"M3"
-  datasetfile=paste0("sim_data/dataset",model,type,i,".Rdata")
+  datasetfile=paste0("sim_data/dataset",
+                     model,type,i,".Rdata")
 } else {
   i<-args[1]
   type<-args[2]
   model<-args[3]
   analysis<-args[4]
-  datasetfile=paste0("sim_data/dataset",model,type,i,".Rdata")
+  datasetfile=paste0("sim_data/dataset",
+                     model,type,i,".Rdata")
 }
 
 # i<-1:100
-# type<-'Exponential', "Matern"
+# type<-'Exponential', "Matern", "Cauchy"
 # model<-'SVC', "SVI"
-# analysis<-"M1: likelihood", "M2: Banerjee", "M3: FSA"
+# analysis<-"M1: likelihood", "M2: FSA", "M3: MRA2"
 
 source("1.MRA_resolution_general.R")
 source('covariances.R')
@@ -25,6 +27,7 @@ source('likelihoodK_general.R')
 library(MCMCpack)
 library(truncdist)
 library(invgamma)
+library(Matrix)
 
 aa<-gen_resolution(datasetfile)
 bordes<-aa[[1]];indicesW<-aa[[2]];knotsMRA<-aa[[3]]
@@ -59,20 +62,19 @@ f <- function(param) {
   sigma2 <- 1/taub
   if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type)
+                  beta1,sigma2=1/taub,taue,model,type)
     }else{
       if (analysis=="M2"){
-    loglike <- likelihoodBanerjee(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type)
-      }else {
     loglike <- likelihoodFSA_Block(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type)}}
-  #logpriortaue <- (dgamma(taub,shape=0.5, scale=2, log=T))
-  #logpriortaub <- dgamma(taub,shape=5, scale=2, log=T)
+                  beta1,sigma2=1/taub,taue,model,type)
+      }else {
+        MRA_num <- 2
+        loglike <- likelihoodMRA(nu,phi,beta0,
+                  beta1,sigma2=1/taub,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
-  logpriorbeta0 <- dnorm(0,1,log=TRUE)
-  logpriorbeta1 <- dnorm(2,1,log=TRUE)
-  logpriornu    <- dunif(phi,0.80,1.20,log=TRUE) 
+  logpriorbeta0 <- dnorm(beta0,0,1,log=TRUE)
+  logpriorbeta1 <- dnorm(beta1,2,1,log=TRUE)
+  logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
   logprior <- logpriorbeta0+logpriorbeta1+
               logpriorphi+logpriornu
   like <- -(loglike/2) +logprior
@@ -124,7 +126,7 @@ run_metropolis_MCMC <- function(startvalue, iterations){
     probab <- min(0,
     f(proposal) -
     #+ dgamma(chain[i,1],alpha[1],beta[1], log=TRUE)-
-      f(chain[i,]) )
+      f(chain[i,]))
     #- dgamma(proposal[1],alpha[1],beta[1], log=TRUE))
     alphan <- exp(probab)
     if (log(runif(1)) <= probab){
@@ -139,13 +141,13 @@ run_metropolis_MCMC <- function(startvalue, iterations){
   return(chain)
 }
 
-print(datasetfile)
+print(paste("Model =",analysis,"/ Data =",datasetfile))
 
 start_time <- Sys.time()
 
 set.seed(100)
-chain = run_metropolis_MCMC(startvalue, 2000)
-burnIn = 500
+chain = run_metropolis_MCMC(startvalue, 200)
+burnIn = 50
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
