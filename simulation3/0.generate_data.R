@@ -35,7 +35,8 @@ gridlist <- list(x=seq(0,1,length.out = nlon),
 n <- dim(gridbase)[1] #Number of spatial points
 k <- 1 #Observations through time 
 #Random field generator
-rExpMat <- function(n,coords,type,range,variance,nu=1.5){
+rExpMat <- function(n,coords,type,range,variance,nu=1,
+                    alpha=1,beta=1){
   if(type=='Exponential'){
     m <- stationary.cov(coords,Covariance = type,
                         Distance = 'rdist.earth',
@@ -45,6 +46,10 @@ rExpMat <- function(n,coords,type,range,variance,nu=1.5){
     m <- stationary.cov(coords,Covariance = type,
                         Distance = 'rdist.earth',
                         theta = range,phi=variance,nu=nu)
+  }
+  if(type=='Cauchy'){
+    m <- rdist.earth(coords)
+    m <- (1+abs(m)^alpha)^(-beta/alpha) #Gneiting & Schlather, 2004
   }
   return(drop(crossprod(chol(m),
                         matrix(rnorm(nrow(coords)*n), ncol=n))))
@@ -82,9 +87,11 @@ save(dataset, hh, file=paste0("sim_data/dataset",
                               model,type,i,".Rdata"))
 }
 
-nsimulations <- 30
+nsimulations <- 10
 
 lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Exponential",i))
 lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Exponential",i))
 lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Matern",i))
 lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Matern",i))
+lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Cauchy",i))
+lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Cauchy",i))
