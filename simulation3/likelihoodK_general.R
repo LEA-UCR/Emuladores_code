@@ -1,6 +1,6 @@
 likelihoodBanerjee <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
-  C <- cExpMat(knotsMRA[[1]],hh,type,phi,variance=sigma2,nu)
-  Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,variance=sigma2,nu)
+  C <- cExpMat(knotsMRA[[1]],hh,type,phi,sigma2,nu)
+  Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu)
   Sigma <- t(C) %*% chol2inv(chol(Cstar)) %*% C 
   Y <- hh$Y
   if(model == "SVC"){
@@ -14,7 +14,7 @@ likelihoodBanerjee <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
-  return(as.numeric(m2logv))
+  return(m2logv)
 }
 
 Blockmatrix <- function(iP){
@@ -53,11 +53,11 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     XX <- diag(X)
     muhat <- beta0+beta1*X
   }
-  
-  C <- cExpMat(knotsMRA[[1]],hh,type,phi,variance=sigma2,nu)
-  Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,variance=sigma2,nu)
+
+  C <- cExpMat(knotsMRA[[1]],hh,type,phi,sigma2,nu)
+  Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu)
   Sigmaw <- t(C) %*% chol2inv(chol(Cstar)) %*% C 
-  Sigma <- cExpMat(hh,hh,type,phi,variance=sigma2,nu)
+  Sigma <- cExpMat(hh,hh,type,phi,sigma2,nu)
   Kappa <- Blockmatrix(hh$iK2)
   Sigmae <- (Sigma-Sigmaw)*Kappa
   XSigmae <- t(XX)%*%Sigmae%*%XX+(1/taue)*diag(dim(Sigmae)[1])
@@ -76,7 +76,7 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
 }
 
 likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
-  Sigma <- cExpMat(hh,hh,type,phi,variance=sigma2,nu)
+  Sigma <- cExpMat(hh,hh,type,phi,sigma2,nu)
   Y <- hh$Y
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
@@ -84,17 +84,18 @@ likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     muhat <- beta0+beta1*X
   } else {
     X <- hh$X
-    XX <- diag(X)
-    muhat <- beta0+beta1*X
+  XX <- diag(X)
+  muhat <- beta0+beta1*X
   }
-  
+
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
-  return(as.numeric(m2logv))
+  return(m2logv)
 }
 
-WQXYmakerMatern <- function(sigma2){
+
+WQXYmakerMatern <- function(){
   Qlist <- list()
   Wlist <- list()
   Xlist <- list()
@@ -112,27 +113,25 @@ WQXYmakerMatern <- function(sigma2){
       Qlist[[M]][[jm]] <- knotsMRA[[M]] %>% 
         filter(.data[[paste0('iP',M)]]==jm)
       Xlist[[M]][[jm]] <- diag((hh %>% 
-            filter(.data[[paste0('iP',M)]]==jm) %>%
-            dplyr::select(X))$X)
+                                  filter(.data[[paste0('iP',M)]]==jm) %>%
+                                  dplyr::select(X))$X)
       Ylist[[M]][[jm]] <- (hh %>%
-            filter(.data[[paste0('iP',M)]]==jm) %>%
-            dplyr::select(Y))$Y
+                             filter(.data[[paste0('iP',M)]]==jm) %>%
+                             dplyr::select(Y))$Y
       indicesjerarq <- Qlist[[M]][[jm]] %>% 
         dplyr::select(starts_with('iP'))%>%
         st_drop_geometry()
       for(l in 1:M){
         #        show(l)
         jl <- as.numeric(indicesjerarq %>% 
-             dplyr::select(.data[[paste0('iP',l)]]) %>% 
-               unique())
+                           dplyr::select(.data[[paste0('iP',l)]]) %>% unique())
         factorW <- 0
         if(l!=1){
           factorW <- 0
           for(k in 1:(l-1)){
             jk <- as.numeric(indicesjerarq %>% 
-               dplyr::select(.data[[paste0('iP',k)]]) %>% 
-                 unique())  
-  #diag(Wlist[[k]][[k]][[jk]])<-diag(Wlist[[k]][[k]][[jk]])+
+                               dplyr::select(.data[[paste0('iP',k)]]) %>% unique())  
+            #diag(Wlist[[k]][[k]][[jk]])<-diag(Wlist[[k]][[k]][[jk]])+
             # rep(sigma2,dim(Wlist[[k]][[k]][[jk]])[1])
             factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%
               chol2inv(chol(Wlist[[k]][[k]][[jk]]))%*%
@@ -141,9 +140,9 @@ WQXYmakerMatern <- function(sigma2){
         }
         Wlist[[M]][[l]][[jm]] <- cExpMat(Qlist[[M]][[jm]],
                                          Qlist[[l]][[jl]],
-                                         type,phi,variance=sigma2,nu)-factorW
-    rownames(Wlist[[M]][[l]][[jm]]) <- as.character(Qlist[[M]][[jm]]$indice_m)
-    colnames(Wlist[[M]][[l]][[jm]]) <- as.character(Qlist[[l]][[jl]]$indice_m)
+                                         type,phi,sigma2,nu)-factorW
+        rownames(Wlist[[M]][[l]][[jm]]) <- as.character(Qlist[[M]][[jm]]$indice_m)
+        colnames(Wlist[[M]][[l]][[jm]]) <- as.character(Qlist[[l]][[jl]]$indice_m)
         
         #Wlist[[M]][[l]][[jm]] <- corrMaternduo(Qlist[[M]][[jm]],
         #                                       Qlist[[l]][[jl]],
@@ -160,10 +159,11 @@ WQXYmakerMatern <- function(sigma2){
   return(matrices_r)
 }
 
-likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,
-                          type, MRA_num){
-  sigma2 <- 1/taub
-  matrices <- WQXYmakerMatern(sigma2)
+likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
+  source('likelihoodK_general.R')
+  library(Matrix)
+  matrices <- WQXYmakerMatern()
+  
   Y <- hh$Y
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
@@ -178,22 +178,18 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,
   Wmat <- matrices$W
   
   MRA.decompose <- function(j){
-    C <- matrix(0,nrow = max(hh$indice_m),
-                ncol = max(knotsMRA[[j]]$indice_m))
+    C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
     rownames(C) <- as.character(1:max(hh$indice_m))
     colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-    for(i in 1:length(Wmat[[4]][[j]])){
-      C[rownames(Wmat[[4]][[j]][[i]]),
-        colnames(Wmat[[4]][[j]][[i]])] <- Wmat[[4]][[j]][[i]]
+    for(i in 1:length(Wmat[[nMRA]][[j]])){
+      C[rownames(Wmat[[nMRA]][[j]][[i]]),colnames(Wmat[[nMRA]][[j]][[i]])] <- Wmat[[nMRA]][[j]][[i]]
     }
     
-    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),
-                    ncol = max(knotsMRA[[j]]$indice_m))
+    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
     rownames(Cstar) <- as.character(1:max(knotsMRA[[j]]$indice_m))
     colnames(Cstar) <- rownames(Cstar)
     for(i in 1:length(Wmat[[j]][[j]])){
-      Cstar[rownames(Wmat[[j]][[j]][[i]]),
-            colnames(Wmat[[j]][[j]][[i]])] <- Wmat[[j]][[j]][[i]]
+      Cstar[rownames(Wmat[[j]][[j]][[i]]),colnames(Wmat[[j]][[j]][[i]])] <- Wmat[[j]][[j]][[i]]
     }
     
     Cstar <- as(Cstar ,'dgCMatrix')
@@ -204,15 +200,14 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,
     return(list(Sigmaw,C,Cstar))
   }
   
-  for(k in MRA_num:1){
+  for(k in nMRA:1){
     matrices_MRA <- MRA.decompose(k)
     Sigmaw <- matrices_MRA[[1]]
     C <- matrices_MRA[[2]] 
     Cstar <- matrices_MRA[[3]]
-    if(k==MRA_num){
+    if(k==nMRA){
       SigmaB <- Sigmaw
-      XSigmae <- XX %*% Sigmaw %*% XX + (1/taue) * 
-        diag(dim(Sigmaw)[1])
+      XSigmae <- XX %*% Sigmaw %*% XX + (1/taue) * diag(dim(Sigmaw)[1])
       blocks_XSigmae <- unique(ExtractBlocks(XSigmae))
       blocks_inv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
       SigmaYinv <- XSigmae_inv <- bdiag(blocks_inv)
@@ -221,14 +216,12 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,
     }else{
       SigmaB <- SigmaB+Sigmaw
       SigmaYinv <- SigmaYinv-SigmaYinv%*%t(XX)%*%C%*%
-        solve(Cstar+t(C)%*%XX%*%SigmaYinv%*%
-                t(XX)%*%C)%*%t(C)%*%XX%*%SigmaYinv
-      logSigmaYdet <- log(det(Cstar+t(C)%*%XX%*%SigmaYinv%*%
-                                t(XX)%*%C))-log(det(Cstar))+
+        solve(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C)%*%t(C)%*%XX%*%SigmaYinv
+      logSigmaYdet <- log(det(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C))-log(det(Cstar))+
         logSigmaYdet
     }
   }
   m2logv <- logSigmaYdet+t(Y-muhat)%*%SigmaYinv%*%(Y-muhat)
-  return(as.numeric(m2logv))
+  return(m2logv)
   #return(list(m2logv,SigmaB))
 }
