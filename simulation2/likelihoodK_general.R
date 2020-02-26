@@ -159,7 +159,7 @@ WQXYmakerMatern <- function(){
   return(matrices_r)
 }
 
-likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
+likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
   source('likelihoodK_general.R')
   library(Matrix)
   matrices <- WQXYmakerMatern()
@@ -181,8 +181,8 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
     rownames(C) <- as.character(1:max(hh$indice_m))
     colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-    for(i in 1:length(Wmat[[4]][[j]])){
-      C[rownames(Wmat[[4]][[j]][[i]]),colnames(Wmat[[4]][[j]][[i]])] <- Wmat[[4]][[j]][[i]]
+    for(i in 1:length(Wmat[[nMRA]][[j]])){
+      C[rownames(Wmat[[nMRA]][[j]][[i]]),colnames(Wmat[[nMRA]][[j]][[i]])] <- Wmat[[nMRA]][[j]][[i]]
     }
     
     Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
@@ -200,12 +200,12 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     return(list(Sigmaw,C,Cstar))
   }
   
-  for(k in 4:1){
+  for(k in nMRA:1){
     matrices_MRA <- MRA.decompose(k)
     Sigmaw <- matrices_MRA[[1]]
     C <- matrices_MRA[[2]] 
     Cstar <- matrices_MRA[[3]]
-    if(k==4){
+    if(k==nMRA){
       SigmaB <- Sigmaw
       XSigmae <- XX %*% Sigmaw %*% XX + (1/taue) * diag(dim(Sigmaw)[1])
       blocks_XSigmae <- unique(ExtractBlocks(XSigmae))
