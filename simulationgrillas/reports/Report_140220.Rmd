@@ -1,0 +1,56 @@
+---
+title: "REPORT"
+author: "Marcela Alfaro Córdoba"
+date: "2/14/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## PRIMERAS PRUEBAS
+
+Después de realizar las correcciones de previas y modificar el nugget y la precisión de los datos generados, se corrieron cuatro pruebas: SVC con Matern y Exponencial, utilizando el modelo de verosimilitud simple, y el SVC con Matern y Exponencial, utilizando el modelo MR1 (FSA).
+
+Las opciones de Banerjee y SVI están pendientes debido a que los arreglos que se hicieron no funcionaron. El tiempo para correr 4000 iteraciones de las MCMC en cada caso fue:
+
+```{r cars}
+library(knitr)
+time0 <- matrix(c(30.96798,60.298077,34.95344,63.47836),ncol=2)
+colnames(time0) <- c("Exponential", "Matern")
+rownames(time0) <- c("M1 SVC", "M3 SVC")
+
+kable(time0, caption = "Tiempos de corrida (minutes)")
+```
+
+## Resultados de cada corrida
+
+Model 1: Likelihood
+
+SVC + Exponential
+![](/Users/marce/Dropbox/Emuladores_code-master/simulation2/sim_res/plotM1SVCExponential_i3.png)
+
+SVC + Matern
+![](/Users/marce/Dropbox/Emuladores_code-master/simulation2/sim_res/plotM1SVCMatern3.png)
+
+Model 3: MR1 (FSA)
+
+SVC + Exponential
+![](/Users/marce/Dropbox/Emuladores_code-master/simulation2/sim_res/plotM3SVCExponential3_i3.png)
+
+SVC + Matern
+![](/Users/marce/Dropbox/Emuladores_code-master/simulation2/sim_res/plotM3SVCMatern3.png)
+
+
+```{r cars}
+library(knitr)
+time0 <- matrix(c(30.96798,60.298077,34.95344,63.47836),ncol=2)
+colnames(time0) <- c("Exponential", "Matern")
+rownames(time0) <- c("M1 SVC", "M3 SVC")
+
+kable(time0, caption = "Tiempos de corrida (minutes)")
+``` 
+
+
+
