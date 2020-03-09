@@ -1,10 +1,10 @@
 # if you are working local, setwd in simulation2 first!
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
-  i<-1
-  type<-"Cauchy"
-  model<-"SVI"
-  analysis<-"M3"
+  i<-10
+  type<-"Exponential"
+  model<-"SVC"
+  analysis<-"M1"
   datasetfile=paste0("sim_data/dataset",
                      model,type,i,".Rdata")
 } else {
@@ -17,7 +17,7 @@ if(length(args)==0){
 }
 
 # i<-1:100
-# type<-'Exponential', "Matern", "Cauchy"
+# type<-'Exponential', "Matern"
 # model<-'SVC', "SVI"
 # analysis<-"M1: likelihood", "M2: FSA", "M3: MRA2"
 
@@ -72,8 +72,8 @@ f <- function(param) {
         loglike <- likelihoodMRA(nu,phi,beta0,
                   beta1,sigma2=1/taub,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
-  logpriorbeta0 <- dnorm(beta0,0,1,log=TRUE)
-  logpriorbeta1 <- dnorm(beta1,2,1,log=TRUE)
+  logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
+  logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)
   logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
   logprior <- logpriorbeta0+logpriorbeta1+
               logpriorphi+logpriornu
@@ -146,8 +146,8 @@ print(paste("Model =",analysis,"/ Data =",datasetfile))
 start_time <- Sys.time()
 
 set.seed(100)
-chain = run_metropolis_MCMC(startvalue, 200)
-burnIn = 50
+chain = run_metropolis_MCMC(startvalue, 10000)
+burnIn = 2000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
@@ -158,26 +158,34 @@ print(end_time-start_time)
 
 png(filename=paste0("sim_res/plot",analysis,model,type,i,".png"))
 par(mfrow = c(2,npar))
-hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of phi", xlab="True value = red line")
+hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of phi", 
+     xlab="True value = red line")
 abline(v = mean(chain[-(1:burnIn),1]), col="green")
 abline(v = 0.9, col="red" )
-hist(chain[-(1:burnIn),2],nclass=30, main="Posterior of beta0", xlab="True value = red line")
+hist(chain[-(1:burnIn),2],nclass=30, main="Posterior of beta0", 
+     xlab="True value = red line")
 abline(v = mean(chain[-(1:burnIn),2]), col="green")
 abline(v = 0, col="red" )
-hist(chain[-(1:burnIn),3],nclass=30, main="Posterior of beta1", xlab="True value = red line")
+hist(chain[-(1:burnIn),3],nclass=30, main="Posterior of beta1", 
+     xlab="True value = red line")
 abline(v = mean(chain[-(1:burnIn),3]), col="green")
 abline(v = 2, col="red" )
-hist(chain[-(1:burnIn),4],nclass=30, main="Posterior of nu", xlab="True value = red line")
-abline(v = mean(chain[-(1:burnIn),3]), col="green")
+hist(chain[-(1:burnIn),4],nclass=30, main="Posterior of nu", 
+     xlab="True value = red line")
+abline(v = mean(chain[-(1:burnIn),4]), col="green")
 abline(v = 1, col="red" )
 
-plot(chain[-(1:burnIn),1], type = "l", xlab="True value = red line" , main = "Chain values of phi", )
+plot(chain[-(1:burnIn),1], type = "l", xlab="True value = red line" , 
+     main = "Chain values of phi", )
 abline(h = 0.9, col="red" )
-plot(chain[-(1:burnIn),2], type = "l", xlab="True value = red line" , main = "Chain values of beta0", )
+plot(chain[-(1:burnIn),2], type = "l", xlab="True value = red line" , 
+     main = "Chain values of beta0", )
 abline(h = 0, col="red" )
-plot(chain[-(1:burnIn),3], type = "l", xlab="True value = red line" , main = "Chain values of beta1", )
+plot(chain[-(1:burnIn),3], type = "l", xlab="True value = red line" , 
+     main = "Chain values of beta1", )
 abline(h = 2, col="red" )
-plot(chain[-(1:burnIn),4], type = "l", xlab="True value = red line" , main = "Chain values of nu", )
+plot(chain[-(1:burnIn),4], type = "l", xlab="True value = red line" , 
+     main = "Chain values of nu", )
 abline(h = 1, col="red" )
 
 dev.off()
