@@ -2,9 +2,9 @@
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   i<-10
-  type<-"Exponential"
-  model<-"SVC"
-  analysis<-"M1"
+  type<-"Matern"
+  model<-"SVI"
+  analysis<-"M2"
   datasetfile=paste0("sim_data/dataset",
                      model,type,i,".Rdata")
 } else {
