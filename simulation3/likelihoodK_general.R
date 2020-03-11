@@ -208,6 +208,7 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
     if(k==nMRA){
       SigmaB <- Sigmaw
       XSigmae <- XX %*% Sigmaw %*% XX + (1/taue) * diag(dim(Sigmaw)[1])
+      XSigmae <- as(XSigmae ,'dgCMatrix')
       blocks_XSigmae <- unique(ExtractBlocks(XSigmae))
       blocks_inv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
       SigmaYinv <- XSigmae_inv <- bdiag(blocks_inv)

@@ -60,7 +60,7 @@ hh <- st_as_sf(hh)
 # Indexing by partition (iP...)
 
 indicesW.make <- function(indice){
-  combs <- indicesregK[,1:indice] %>% crossing() %>%
+  combs <- indicesregK[,1:indice] %>% tidyr::crossing() %>%
     mutate(ttemp=1:n())
   colnames(combs) <- c(paste0('iK',1:indice),paste0('iP',indice))
   return(combs)

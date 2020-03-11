@@ -4,7 +4,7 @@ if(length(args)==0){
   i<-10
   type<-"Matern"
   model<-"SVI"
-  analysis<-"M2"
+  analysis<-"M3"
   datasetfile=paste0("sim_data/dataset",
                      model,type,i,".Rdata")
 } else {
@@ -49,7 +49,7 @@ npar <- length(startvalue)
 # fixed
 taub <- 1
 taue <- 5
-
+sigma2 <- 1/taub
 ##################
 # L functions    #
 ##################
@@ -59,18 +59,17 @@ f <- function(param) {
   beta0 <- param[2]
   beta1 <- param[3]
   nu    <- param[4]
-  sigma2 <- 1/taub
   if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
-                  beta1,sigma2=1/taub,taue,model,type)
+                  beta1,sigma2,taue,model,type)
     }else{
       if (analysis=="M2"){
     loglike <- likelihoodFSA_Block(nu,phi,beta0,
-                  beta1,sigma2=1/taub,taue,model,type)
+                  beta1,sigma2,taue,model,type)
       }else {
         MRA_num <- 2
         loglike <- likelihoodMRA(nu,phi,beta0,
-                  beta1,sigma2=1/taub,taue,model,type, MRA_num)}}
+                  beta1,sigma2,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
   logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
   logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)
@@ -78,7 +77,7 @@ f <- function(param) {
   logprior <- logpriorbeta0+logpriorbeta1+
               logpriorphi+logpriornu
   like <- -(loglike/2) +logprior
-  return(like)
+  return(as.numeric(like))
 }
 
 ##################

@@ -66,6 +66,6 @@ centroides_fractalB1 <- centroides %>% dplyr::select(beta1)
 coord <- st_coordinates(centroides_fractalB1)
 fractalD <- RFfractaldim(data = as_Spatial(centroides_fractalB1),bin=seq(0,1,0.01))
 
-RFhurst(x = coord[,1],y=coord[,2],data = centroides_fractalB1$beta1,method='dfa')
-rr <- RFvariogram(data = as_Spatial(centroides_fractalB1))
+#RFhurst(x = coord[,1],y=coord[,2],data = centroides_fractalB1$beta1,method='dfa')
+#rr <- RFvariogram(data = as_Spatial(centroides_fractalB1))
 
