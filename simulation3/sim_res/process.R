@@ -10,13 +10,13 @@ analysis<-c("M1","M2")
 
 extract_all <- function(analysis, model, type, i){
   file1 <- paste0("sim_res/chain",analysis,model,
-               type,i,".Rdata")
+                  type,i,".Rdata")
   file2 <- paste0("sim_res/output_",i,"_",type,
-                "_",model,"_",analysis,".txt")
+                  "_",model,"_",analysis,".txt")
   load(file1)
-
+  
   vars <- which(abs(geweke.diag(chain, frac1=0.1, frac2=0.5)$z)<
-    qnorm(0.975))
+                  qnorm(0.975))
   
   median_c <- apply(chain,2,median)
   mean_c <- apply(chain,2,mean)
@@ -31,8 +31,8 @@ extract_all <- function(analysis, model, type, i){
   mad <- apply(chain,2,mad_func)
   time <- parse_number(as.character(read.delim(file2)[303,]))
   mcmc_desc <- cbind(bias,mse,mad)
-
-    return(list(descriptives,mcmc_desc,time, converged=vars))
+  
+  return(list(descriptives,mcmc_desc,time, converged=vars))
 }
 
 
