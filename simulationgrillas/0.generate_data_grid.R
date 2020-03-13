@@ -88,14 +88,8 @@ function.to.gen.data <- function(model, type, i, grid.size=c(20,20)){
 }
 
 
-
-
 nsimulations <- 1
-gridsize=c(20,50,100)
-for(j in 1:3){
-lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Exponential",i,grid.size = c(gridsize[j], gridsize[j])))
-lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Exponential",i, grid.size = c(gridsize[j], gridsize[j])))
+gridsize=c(20,30,40,50,100)
+for(j in 1:5){
 lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Matern",i, grid.size = c(gridsize[j], gridsize[j])))
-lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Matern",i, grid.size = c(gridsize[j], gridsize[j])))
-lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Cauchy",i, grid.size = c(gridsize[j], gridsize[j])))
-lapply(1:nsimulations,function(i)function.to.gen.data("SVI","Cauchy",i, grid.size=c(gridsize[j], gridsize[j])))}
+}
