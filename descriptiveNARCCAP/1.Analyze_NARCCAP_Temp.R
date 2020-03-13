@@ -6,7 +6,7 @@ library(RandomFields)
 
 
 
-load('TStotal.RData')
+load('../datos/NARCCAP/TStotal.RData')
 
 base_cruda <- TStot
 rm(TStot)
