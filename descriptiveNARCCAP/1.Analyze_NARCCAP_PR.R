@@ -6,7 +6,7 @@ library(RandomFields)
 
 
 
-load('PRtotal.RData')
+load('../datos/NARCCAP/PRtotal.RData')
 
 base_cruda <- PRtot
 rm(PRtot)
