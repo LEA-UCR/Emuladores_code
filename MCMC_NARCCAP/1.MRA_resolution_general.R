@@ -11,7 +11,7 @@ bordes <- bbox(hh)
 crsglobal <- CRS('+proj=longlat +datum=WGS84')
 # MRA definitions: levels and partitions (4 levels and 
 # 4 partitions: default)
-nlevelsMRA <- 2 #Number of MRA levels
+nlevelsMRA <- 4 #Number of MRA levels
 npartitions <- 4
 npartitions_r <- 2
 npartitions_c <- npartitions/npartitions_r
@@ -46,7 +46,6 @@ f <- function(nc, nr, partitions, nc_n, nr_n, bordes, crsglobal){
                  dplyr::select(celln))$celln)
   return(indicesregK)
 }
-
 indicesregK <- pmap(list(nc, nr, partitions,nc_n,nr_n ), f,
             bordes = bordes, crsglobal = crsglobal)
 
@@ -61,6 +60,7 @@ hh <- st_as_sf(hh)
 
 indicesW.make <- function(indice){
   combs <- indicesregK[,1:indice] %>% tidyr::crossing() %>%
+    distinct() %>% arrange_all() %>%
     mutate(ttemp=1:n())
   colnames(combs) <- c(paste0('iK',1:indice),paste0('iP',indice))
   return(combs)

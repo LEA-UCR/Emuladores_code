@@ -67,7 +67,7 @@ f <- function(param) {
     loglike <- likelihoodFSA_Block(nu,phi,beta0,
                   beta1,sigma2,taue,model,type)
       }else {
-        MRA_num <- 2
+        MRA_num <- 4
         loglike <- likelihoodMRA(nu,phi,beta0,
                   beta1,sigma2,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
@@ -115,6 +115,7 @@ proposalfunction <- function(param,i,th){
 run_metropolis_MCMC <- function(startvalue, iterations){
   chain = array(dim = c(iterations+1,npar))
   chain[1,] = startvalue
+  fchain <- f(chain[1,])
   for (i in 1:iterations){
     show(i)
     # iterations <- 10000;i<-1
@@ -123,14 +124,16 @@ run_metropolis_MCMC <- function(startvalue, iterations){
     #proposal <- proposal_all[[1]]
     #alpha <- proposal_all[[2]]
     #beta <- proposal_all[[3]]
+    fprop <- f(proposal)
     probab <- min(0,
-    f(proposal) -
+    fprop -
     #+ dgamma(chain[i,1],alpha[1],beta[1], log=TRUE)-
-      f(chain[i,]))
+      fchain)
     #- dgamma(proposal[1],alpha[1],beta[1], log=TRUE))
     alphan <- exp(probab)
     if (log(runif(1)) <= probab){
       chain[i+1,] = proposal
+      fchain <- fprop
     }else{
       chain[i+1,] = chain[i,]
     }
