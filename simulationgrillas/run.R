@@ -1,17 +1,15 @@
 # if you are working local, setwd in simulation2 first!
+i<-1
+type<-"Matern"
+model<-"SVC"
+
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
-  i<-1
-  type<-"Cauchy"
-  model<-"SVI"
   analysis<-"M3"
-  grid = "20"
-  datasetfile=paste0("sim_data_grid/dataset",
+  grid = "100"
+  datasetfile=paste0("sim_data/dataset",
                      model,type,i,"x",grid,".Rdata")
 } else {
-  i<-args[1]
-  type<-args[2]
-  model<-args[3]
   analysis<-args[4]
   grid = args[5]
 
@@ -19,10 +17,11 @@ if(length(args)==0){
                      model,type,i,"x",grid,".Rdata")
 }
 
-# i<-1:100
-# type<-'Exponential', "Matern", "Cauchy"
-# model<-'SVC', "SVI"
-# analysis<-"M1: likelihood", "M2: FSA", "M3: MRA2"
+
+# M1, SVC, Matern (20, 30, 40, 50, 100)
+# M2, SVC, Matern (20, 30, 40, 50, 100)
+# M3, SVC, Matern (20, 30, 40, 50, 100)
+
 
 source("1.MRA_resolution_general.R")
 source('covariances.R')
@@ -137,7 +136,7 @@ run_metropolis_MCMC <- function(startvalue, iterations){
     }else{
       chain[i+1,] = chain[i,]
     }
-    if(i%%100==0){
+    if(i%%1==0){
     print(round(c(i, alphan, chain[i+1,]),4))
     }
   }
@@ -148,9 +147,9 @@ print(paste("Model =",analysis,"/ Data =",datasetfile))
 
 start_time <- Sys.time()
 
-set.seed(100)
-chain = run_metropolis_MCMC(startvalue, 10000)
-burnIn =1500 
+set.seed(10)
+chain = run_metropolis_MCMC(startvalue, 10)
+burnIn =5 
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
