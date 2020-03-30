@@ -10,7 +10,7 @@ Contents:
 
 * [Data](datos)
 
-* [Simulation 1](simulation3)
+* [Simulation study to compare methods](simulation3)
 
 * [Simulation with different Grids](simulationgrillas)
 
