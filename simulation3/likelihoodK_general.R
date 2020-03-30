@@ -28,6 +28,21 @@ Blockmatrix <- function(iP){
   return(imatrix)
 }
 
+ExtractBlocks_pre <- function(mat, plot.graph = FALSE) {
+  stopifnot(nrow(mat) == ncol(mat))
+  x <- mat
+  diag(x) <- 1
+  edges <- as.matrix(summary(x)[c("i", "j")])
+  library(igraph)
+  browser()
+  g <- graph.edgelist(edges, directed = FALSE)
+  if (plot.graph) plot(g)
+  groups <- unique(Map(sort, neighborhood(g, nrow(mat))))
+  sub.Mat <- Map(`[`, list(as.matrix(mat)), groups, groups, drop = FALSE)
+  sub.mat <- Map(as.matrix, sub.Mat)
+  return(unique(sub.mat))
+}
+
 ExtractBlocks <- function(mat, plot.graph = FALSE) {
   stopifnot(nrow(mat) == ncol(mat))
   x <- mat
@@ -36,10 +51,10 @@ ExtractBlocks <- function(mat, plot.graph = FALSE) {
   library(igraph)
   g <- graph.edgelist(edges, directed = FALSE)
   if (plot.graph) plot(g)
-  groups <- unique(Map(sort, neighborhood(g, nrow(mat))))
+  groups <- unique(Map(as.matrix,(Map(sort, ego(g, 1)))))
   sub.Mat <- Map(`[`, list(as.matrix(mat)), groups, groups, drop = FALSE)
   sub.mat <- Map(as.matrix, sub.Mat)
-  return(sub.mat)
+  return(unique(sub.mat))
 }
 
 likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
@@ -53,7 +68,7 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     XX <- diag(X)
     muhat <- beta0+beta1*X
   }
-
+  
   C <- cExpMat(knotsMRA[[1]],hh,type,phi,sigma2,nu)
   Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu)
   Sigmaw <- t(C) %*% chol2inv(chol(Cstar)) %*% C 
@@ -84,10 +99,10 @@ likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     muhat <- beta0+beta1*X
   } else {
     X <- hh$X
-  XX <- diag(X)
-  muhat <- beta0+beta1*X
+    XX <- diag(X)
+    muhat <- beta0+beta1*X
   }
-
+  
   Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
   m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
     t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
@@ -112,12 +127,12 @@ WQXYmakerMatern <- function(){
     for(jm in 1:(dim(indicesW[[M]])[1])){
       Qlist[[M]][[jm]] <- knotsMRA[[M]] %>% 
         filter(.data[[paste0('iP',M)]]==jm)
-      Xlist[[M]][[jm]] <- diag((hh %>% 
-                                  filter(.data[[paste0('iP',M)]]==jm) %>%
-                                  dplyr::select(X))$X)
-      Ylist[[M]][[jm]] <- (hh %>%
-                             filter(.data[[paste0('iP',M)]]==jm) %>%
-                             dplyr::select(Y))$Y
+      #Xlist[[M]][[jm]] <- diag((hh %>% 
+      #                            filter(.data[[paste0('iP',M)]]==jm) %>%
+      #                            dplyr::select(X))$X)
+      #Ylist[[M]][[jm]] <- (hh %>%
+      #                       filter(.data[[paste0('iP',M)]]==jm) %>%
+      #                       dplyr::select(Y))$Y
       indicesjerarq <- Qlist[[M]][[jm]] %>% 
         dplyr::select(starts_with('iP'))%>%
         st_drop_geometry()
@@ -155,14 +170,15 @@ WQXYmakerMatern <- function(){
       }
     }
   }
-  matrices_r <- list(W=Wlist,X=Xlist,Y=Ylist)
+  #matrices_r <- list(W=Wlist,X=Xlist,Y=Ylist)
+  matrices_r <- list(W=Wlist)
   return(matrices_r)
 }
 
-likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
+likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,MRA_num){
   source('likelihoodK_general.R')
   library(Matrix)
-  matrices <- WQXYmakerMatern()
+  library(plot.matrix)
   
   Y <- hh$Y
   if(model == "SVC"){
@@ -175,54 +191,117 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
     muhat <- beta0+beta1*X
   }
   
+  rownames(XX) <- colnames(XX) <- as.character(1:max(hh$indice_m))
+  X <- as.matrix(X)
+  muhat <- as.matrix(muhat)
+  rownames(X) <- rownames(muhat) <- rownames(XX)
+  
+  matrices <- WQXYmakerMatern()
   Wmat <- matrices$W
   
   MRA.decompose <- function(j){
+    
+    blocks_C <- list()
+    blocks_Cstar <- list()
+    blocks_Cstarinv <- list()
+    blocks_Sigmaw <- list()
+    blocks_XSigmae <- list()
+    blocks_XX <-list()
+    blocks_Y <-list()
+    blocks_muhat <-list()
+    indices_blocks <- list()
+    Sigmaw <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
+    rownames(Sigmaw) <- colnames(Sigmaw) <- as.character(1:max(hh$indice_m))
     C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
     rownames(C) <- as.character(1:max(hh$indice_m))
     colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-    for(i in 1:length(Wmat[[nMRA]][[j]])){
-      C[rownames(Wmat[[nMRA]][[j]][[i]]),colnames(Wmat[[nMRA]][[j]][[i]])] <- Wmat[[nMRA]][[j]][[i]]
-    }
-    
-    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
+    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),
+                    ncol = max(knotsMRA[[j]]$indice_m))
     rownames(Cstar) <- as.character(1:max(knotsMRA[[j]]$indice_m))
     colnames(Cstar) <- rownames(Cstar)
+    
     for(i in 1:length(Wmat[[j]][[j]])){
-      Cstar[rownames(Wmat[[j]][[j]][[i]]),colnames(Wmat[[j]][[j]][[i]])] <- Wmat[[j]][[j]][[i]]
+      show(i)
+      blocks_C[[i]] <- Wmat[[MRA_num]][[j]][[i]]
+      blocks_Cstar[[i]] <- Wmat[[j]][[j]][[i]]
+      blocks_Cstarinv[[i]] <- chol2inv(chol(blocks_Cstar[[i]]))
+      blocks_Sigmaw[[i]] <- blocks_C[[i]] %*% blocks_Cstarinv[[i]] %*% 
+        t(blocks_C[[i]])
+      indices_blocks[[i]] <- rownames(Wmat[[MRA_num]][[j]][[i]])
+      Sigmaw[rownames(Wmat[[MRA_num]][[j]][[i]]),
+             rownames(Wmat[[MRA_num]][[j]][[i]])] <- blocks_Sigmaw[[i]]
+      #      C[rownames(Wmat[[MRA_num]][[j]][[i]]),
+      #      colnames(Wmat[[MRA_num]][[j]][[i]])] <- blocks_C[[i]]
+      #      Cstar[rownames(Wmat[[j]][[j]][[i]]),
+      #      colnames(Wmat[[j]][[j]][[i]])] <- blocks_Cstar[[i]]
+      blocks_XX[[i]] <- XX[indices_blocks[[i]],indices_blocks[[i]]]
+      blocks_Y[[i]] <- Y[as.integer(indices_blocks[[i]])]
+      blocks_muhat[[i]] <- muhat[as.integer(indices_blocks[[i]])]
+      if(j==MRA_num){
+        blocks_XSigmae[[i]] <- blocks_XX[[i]] %*% blocks_Sigmaw[[i]] %*% 
+          blocks_XX[[i]] + (1/taue) * diag(dim(blocks_Sigmaw[[i]])[1])
+      }
     }
     
-    Cstar <- as(Cstar ,'dgCMatrix')
-    blocks_Cstar <- unique(ExtractBlocks(Cstar))
-    blocks_Cstarinv <- purrr::map(blocks_Cstar,~chol2inv(chol(.)))
-    Cstarinv <- bdiag(blocks_Cstarinv)
-    Sigmaw <- C %*% Cstarinv %*% t(C)
-    return(list(Sigmaw,C,Cstar))
+   return(list(Sigmaw,blocks_C,blocks_Cstar,blocks_XSigmae,
+               blocks_XX,blocks_Y,blocks_muhat,indices_blocks))
   }
   
-  for(k in nMRA:1){
+  quad_SigmaY <- 0
+  
+  for(k in MRA_num:1){
     matrices_MRA <- MRA.decompose(k)
     Sigmaw <- matrices_MRA[[1]]
-    C <- matrices_MRA[[2]] 
-    Cstar <- matrices_MRA[[3]]
-    if(k==nMRA){
+    blocks_C <- matrices_MRA[[2]] 
+    blocks_Cstar <- matrices_MRA[[3]]
+    blocks_XSigmae <- matrices_MRA[[4]]
+    blocks_XX <- matrices_MRA[[5]]
+    blocks_Y <- matrices_MRA[[6]]
+    blocks_muhat <- matrices_MRA[[7]]
+    indices_blocks <- matrices_MRA[[8]]
+    if(k==MRA_num){
       SigmaB <- Sigmaw
-      XSigmae <- XX %*% Sigmaw %*% XX + (1/taue) * diag(dim(Sigmaw)[1])
-      XSigmae <- as(XSigmae ,'dgCMatrix')
-      blocks_XSigmae <- unique(ExtractBlocks(XSigmae))
-      blocks_inv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
-      SigmaYinv <- XSigmae_inv <- bdiag(blocks_inv)
+      blocks_SigmaYinv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
+      SigmaYinv <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
+      rownames(SigmaYinv) <- colnames(SigmaYinv) <- as.character(1:max(hh$indice_m))
+      for(i in 1:length(blocks_SigmaYinv)){
+        SigmaYinv[indices_blocks[[i]],indices_blocks[[i]]] <- blocks_SigmaYinv[[i]]
+        quad_SigmaY <- quad_SigmaY+t(blocks_Y[[i]]-blocks_muhat[[i]])%*%
+          blocks_SigmaYinv[[i]]%*%(blocks_Y[[i]]-blocks_muhat[[i]]) 
+      }
       blocks_det <- purrr::map_dbl(blocks_XSigmae,~det(.))
       logSigmaYdet <- sum(log(blocks_det))
     }else{
       SigmaB <- SigmaB+Sigmaw
-      SigmaYinv <- SigmaYinv-SigmaYinv%*%t(XX)%*%C%*%
-        solve(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C)%*%t(C)%*%XX%*%SigmaYinv
-      logSigmaYdet <- log(det(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C))-log(det(Cstar))+
-        logSigmaYdet
+      SigmaYinv_old <- SigmaYinv
+      SigmaYinv <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
+      rownames(SigmaYinv) <- colnames(SigmaYinv) <- as.character(1:max(hh$indice_m))
+      for(i in 1:length(indices_blocks)){
+        blocks_SigmaYinv_old <- SigmaYinv_old[indices_blocks[[i]],indices_blocks[[i]]]
+        blocks_SigmaYinv <- blocks_SigmaYinv_old - blocks_SigmaYinv_old %*% 
+          blocks_XX[[i]] %*% blocks_C[[i]] %*% 
+          solve(blocks_Cstar[[i]]+t(blocks_C[[i]])%*%
+                  blocks_XX[[i]]%*%blocks_SigmaYinv_old%*%
+                  blocks_XX[[i]]%*%blocks_C[[i]])%*%t(blocks_C[[i]])%*%
+          blocks_XX[[i]]%*%blocks_SigmaYinv_old
+        logSigmaYdet <- logSigmaYdet+log(det(blocks_Cstar[[i]]+
+        t(blocks_C[[i]])%*%blocks_XX[[i]]%*%blocks_SigmaYinv%*%
+          blocks_XX[[i]]%*%blocks_C[[i]]))-
+          log(det(blocks_Cstar[[i]]))
+        quad_SigmaY <- quad_SigmaY+
+          t(blocks_Y[[i]]-blocks_muhat[[i]])%*%blocks_SigmaYinv%*%
+          (blocks_Y[[i]]-blocks_muhat[[i]])
+        SigmaYinv[indices_blocks[[i]],indices_blocks[[i]]] <- blocks_SigmaYinv
+      }
+      
+      #SigmaYinv <- SigmaYinv-SigmaYinv%*%t(XX)%*%C%*%
+      #  solve(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C)%*%t(C)%*%XX%*%SigmaYinv
+      #logSigmaYdet <- log(det(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C))-log(det(Cstar))+
+      #  logSigmaYdet
     }
   }
-  m2logv <- logSigmaYdet+t(Y-muhat)%*%SigmaYinv%*%(Y-muhat)
+  #m2logv <- logSigmaYdet+t(Y-muhat)%*%SigmaYinv%*%(Y-muhat)
+  m2logv <- logSigmaYdet+quad_SigmaY
   return(m2logv)
   #return(list(m2logv,SigmaB))
 }

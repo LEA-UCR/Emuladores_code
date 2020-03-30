@@ -1,9 +1,9 @@
 # if you are working local, setwd in simulation2 first!
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
-  i<-10
+  i<-1
   type<-"Matern"
-  model<-"SVI"
+  model<-"SVC"
   analysis<-"M3"
   datasetfile=paste0("sim_data/dataset",
                      model,type,i,".Rdata")
@@ -144,7 +144,7 @@ print(paste("Model =",analysis,"/ Data =",datasetfile))
 
 start_time <- Sys.time()
 
-set.seed(100)
+set.seed(19)
 chain = run_metropolis_MCMC(startvalue, 10000)
 burnIn = 2000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
