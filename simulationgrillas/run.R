@@ -1,11 +1,11 @@
-# if you are working local, setwd in simulation2 first!
+# if you are working local, setwd in simulationgrillas first!
 i<-1
 type<-"Matern"
 model<-"SVC"
 
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
-  analysis<-"M3"
+  analysis<-"M1"
   grid = "100"
   datasetfile=paste0("sim_data/dataset",
                      model,type,i,"x",grid,".Rdata")
@@ -51,36 +51,37 @@ npar <- length(startvalue)
 # fixed
 taub <- 1
 taue <- 5
+sigma2 <- 1/taub
 
 ##################
 # L functions    #
 ##################
+
 
 f <- function(param) {
   phi   <- param[1]
   beta0 <- param[2]
   beta1 <- param[3]
   nu    <- param[4]
-  sigma2 <- 1/taub
   if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
-                  beta1,sigma2=1/taub,taue,model,type)
-    }else{
-      if (analysis=="M2"){
-    loglike <- likelihoodFSA_Block(nu,phi,beta0,
-                  beta1,sigma2=1/taub,taue,model,type)
-      }else {
-        MRA_num <- 2
-        loglike <- likelihoodMRA(nu,phi,beta0,
-                  beta1,sigma2=1/taub,taue,model,type, MRA_num)}}
+                                  beta1,sigma2,taue,model,type)
+  }else{
+    if (analysis=="M2"){
+      loglike <- likelihoodFSA_Block(nu,phi,beta0,
+                                     beta1,sigma2,taue,model,type)
+    }else {
+      MRA_num <- 2
+      loglike <- likelihoodMRA(nu,phi,beta0,
+                               beta1,sigma2,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
-  logpriorbeta0 <- dnorm(beta0,0,1,log=TRUE)
-  logpriorbeta1 <- dnorm(beta1,2,1,log=TRUE)
+  logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
+  logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)
   logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
   logprior <- logpriorbeta0+logpriorbeta1+
-              logpriorphi+logpriornu
+    logpriorphi+logpriornu
   like <- -(loglike/2) +logprior
-  return(like)
+  return(as.numeric(like))
 }
 
 ##################

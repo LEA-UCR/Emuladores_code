@@ -230,8 +230,8 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
       #      C[rownames(Wmat[[nMRA]][[j]][[i]]),colnames(Wmat[[nMRA]][[j]][[i]])] <- blocks_C[[i]]
       #      Cstar[rownames(Wmat[[j]][[j]][[i]]),colnames(Wmat[[j]][[j]][[i]])] <- blocks_Cstar[[i]]
       blocks_XX[[i]] <- XX[indices_blocks[[i]],indices_blocks[[i]]]
-      blocks_Y[[i]] <- Y[indices_blocks[[i]]]
-      blocks_muhat[[i]] <- muhat[indices_blocks[[i]]]
+      blocks_Y[[i]] <- Y[as.integer(indices_blocks[[i]])]
+      blocks_muhat[[i]] <- muhat[as.integer(indices_blocks[[i]])]
       if(j==nMRA){
         blocks_XSigmae[[i]] <- blocks_XX[[i]] %*% blocks_Sigmaw[[i]] %*% blocks_XX[[i]] + (1/taue) * diag(dim(blocks_Sigmaw[[i]])[1])
       }
