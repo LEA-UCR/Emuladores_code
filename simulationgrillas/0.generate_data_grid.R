@@ -90,7 +90,7 @@ function.to.gen.data <- function(model, type, i, grid.size=c(20,20)){
 
 nsimulations <- 1
 gridsize=c(20,30,40,50,100)
-extrasize <- 200
+extrasize <- 150
 #for(j in 1:5){
 j=1
 lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Matern",i, grid.size = c(extrasize, extrasize)))#gridsize[j])))
