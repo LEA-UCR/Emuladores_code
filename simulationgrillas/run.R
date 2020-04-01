@@ -5,7 +5,7 @@ model<-"SVC"
 
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
-  analysis<-"M1"
+  analysis<-"M3"
   grid = "100"
   datasetfile=paste0("sim_data/dataset",
                      model,type,i,"x",grid,".Rdata")
@@ -71,7 +71,7 @@ f <- function(param) {
       loglike <- likelihoodFSA_Block(nu,phi,beta0,
                                      beta1,sigma2,taue,model,type)
     }else {
-      MRA_num <- 2
+      MRA_num <- 3
       loglike <- likelihoodMRA(nu,phi,beta0,
                                beta1,sigma2,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 

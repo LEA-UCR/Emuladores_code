@@ -1,4 +1,4 @@
-# if you are working local, setwd in simulation3 first!
+# if you are working local, setwd in simulationgrillas first!
 library(fields)
 library(dplyr)
 library(sf)
@@ -90,6 +90,8 @@ function.to.gen.data <- function(model, type, i, grid.size=c(20,20)){
 
 nsimulations <- 1
 gridsize=c(20,30,40,50,100)
-for(j in 1:5){
-lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Matern",i, grid.size = c(gridsize[j], gridsize[j])))
-}
+extrasize <- 200
+#for(j in 1:5){
+j=1
+lapply(1:nsimulations,function(i)function.to.gen.data("SVC","Matern",i, grid.size = c(extrasize, extrasize)))#gridsize[j])))
+#}
