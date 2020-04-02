@@ -3,7 +3,7 @@ likelihoodBanerjee <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu)
   Sigma <- t(C) %*% chol2inv(chol(Cstar)) %*% C 
   Y <- hh$Y
-  if(model == "SVC"){
+  if(model == "SVI"){
     X <- as.vector(scale(hh$X))
     XX <- diag(X)
     muhat <- beta0+beta1*X
@@ -181,20 +181,21 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
   library(plot.matrix)
   
   Y <- hh$Y
+
   if(model == "SVC"){
     X <- as.vector(scale(hh$X))
     XX <- diag(hh$X)
     muhat <- beta0+beta1*X
   } else {
     X <- hh$X
-    XX <- diag(X)
+    XX <- diag(length(X))
     muhat <- beta0+beta1*X
   }
   
   rownames(XX) <- colnames(XX) <- as.character(1:max(hh$indice_m))
-  X <- as.matrix(X)
+  Y <- as.matrix(Y)
   muhat <- as.matrix(muhat)
-  rownames(X) <- rownames(muhat) <- rownames(XX)
+  rownames(Y) <- rownames(muhat) <- rownames(XX)
   
   matrices <- WQXYmakerMatern()
   Wmat <- matrices$W
@@ -220,9 +221,9 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
     colnames(Cstar) <- rownames(Cstar)
 
     for(i in 1:length(Wmat[[j]][[j]])){
-      show(i)
       blocks_C[[i]] <- Wmat[[nMRA]][[j]][[i]]
       blocks_Cstar[[i]] <- Wmat[[j]][[j]][[i]]
+      #show(paste0(i,'-',dim(blocks_C[[i]]),'-',dim(blocks_Cstar[[i]])))
       blocks_Cstarinv[[i]] <- chol2inv(chol(blocks_Cstar[[i]]))
       blocks_Sigmaw[[i]] <- blocks_C[[i]] %*% blocks_Cstarinv[[i]] %*% t(blocks_C[[i]])
       indices_blocks[[i]] <- rownames(Wmat[[nMRA]][[j]][[i]])
@@ -230,8 +231,8 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
 #      C[rownames(Wmat[[nMRA]][[j]][[i]]),colnames(Wmat[[nMRA]][[j]][[i]])] <- blocks_C[[i]]
 #      Cstar[rownames(Wmat[[j]][[j]][[i]]),colnames(Wmat[[j]][[j]][[i]])] <- blocks_Cstar[[i]]
       blocks_XX[[i]] <- XX[indices_blocks[[i]],indices_blocks[[i]]]
-      blocks_Y[[i]] <- Y[indices_blocks[[i]]]
-      blocks_muhat[[i]] <- muhat[indices_blocks[[i]]]
+      blocks_Y[[i]] <- Y[indices_blocks[[i]],]
+      blocks_muhat[[i]] <- muhat[indices_blocks[[i]],]
       if(j==nMRA){
         blocks_XSigmae[[i]] <- blocks_XX[[i]] %*% blocks_Sigmaw[[i]] %*% blocks_XX[[i]] + (1/taue) * diag(dim(blocks_Sigmaw[[i]])[1])
       }
@@ -243,6 +244,7 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
   quad_SigmaY <- 0
   
   for(k in nMRA:1){
+    #show(k)
     matrices_MRA <- MRA.decompose(k)
     Sigmaw <- matrices_MRA[[1]]
     blocks_C <- matrices_MRA[[2]] 
@@ -257,9 +259,11 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
       blocks_SigmaYinv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
       SigmaYinv <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
       rownames(SigmaYinv) <- colnames(SigmaYinv) <- as.character(1:max(hh$indice_m))
+
       for(i in 1:length(blocks_SigmaYinv)){
         SigmaYinv[indices_blocks[[i]],indices_blocks[[i]]] <- blocks_SigmaYinv[[i]]
         quad_SigmaY <- quad_SigmaY+t(blocks_Y[[i]]-blocks_muhat[[i]])%*%blocks_SigmaYinv[[i]]%*%(blocks_Y[[i]]-blocks_muhat[[i]]) 
+    #    show(quad_SigmaY)
       }
       blocks_det <- purrr::map_dbl(blocks_XSigmae,~det(.))
       logSigmaYdet <- sum(log(blocks_det))
@@ -278,7 +282,6 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
         quad_SigmaY <- quad_SigmaY+t(blocks_Y[[i]]-blocks_muhat[[i]])%*%blocks_SigmaYinv%*%(blocks_Y[[i]]-blocks_muhat[[i]])
         SigmaYinv[indices_blocks[[i]],indices_blocks[[i]]] <- blocks_SigmaYinv
       }
-      
       #SigmaYinv <- SigmaYinv-SigmaYinv%*%t(XX)%*%C%*%
       #  solve(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C)%*%t(C)%*%XX%*%SigmaYinv
       #logSigmaYdet <- log(det(Cstar+t(C)%*%XX%*%SigmaYinv%*%t(XX)%*%C))-log(det(Cstar))+

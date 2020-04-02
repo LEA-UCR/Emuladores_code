@@ -6,13 +6,16 @@ library(sf)
 
 gen_resolution <- function(dataset_file){
 load(datasetfile) # data loading
+hh <- hh[hh$lat>=26 & hh$lat<=70 & hh$lon>=235 & hh$lon<=290,]
 # parameters of the raster using the spatial structure
 bordes <- bbox(hh)
 crsglobal <- CRS('+proj=longlat +datum=WGS84')
+
+
 # MRA definitions: levels and partitions (4 levels and 
 # 4 partitions: default)
-nlevelsMRA <- 4 #Number of MRA levels
-npartitions <- 4
+nlevelsMRA <- 7 #Number of MRA levels (7)
+npartitions <- 2
 npartitions_r <- 2
 npartitions_c <- npartitions/npartitions_r
 partitions <- list()
@@ -101,7 +104,7 @@ create_knots <- function(partition, knots){
                   rep(.y, length(.x))),geometry = .x))
   points <- do.call(rbind, points)
   points <- points %>% group_by(iP) %>% summarise()
-  points %>% mutate(n_points = map_int(geometry, nrow))
+#  points %>% mutate(n_points = map_int(geometry, nrow))
   return(points)
 }
 
@@ -113,6 +116,7 @@ show(paste0('El numero de nodos X particion es: ',nknots))
 
 order.knots <- function(indice,nknots){
   knots<-create_knots(indice,nknots)
+  knots$geometry <- st_cast(knots$geometry,'MULTIPOINT')
   knots_tb <- as.data.frame(st_coordinates(knots))
   colnames(knots_tb) <- c('lon','lat',paste0('iP',indice))
   return(knots_tb)

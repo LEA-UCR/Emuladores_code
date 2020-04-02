@@ -3,7 +3,7 @@ args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   variable_narccap <- 'Temp'
   type<-"Matern"
-  model<-"SVC"
+  model<-"SVI"
   analysis<-"M3"
   datasetfile=paste0("data_narccap/dataset",
                      variable_narccap,".Rdata")
@@ -67,7 +67,7 @@ f <- function(param) {
     loglike <- likelihoodFSA_Block(nu,phi,beta0,
                   beta1,sigma2,taue,model,type)
       }else {
-        MRA_num <- 4
+        MRA_num <- nn
         loglike <- likelihoodMRA(nu,phi,beta0,
                   beta1,sigma2,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
@@ -117,7 +117,7 @@ run_metropolis_MCMC <- function(startvalue, iterations){
   chain[1,] = startvalue
   fchain <- f(chain[1,])
   for (i in 1:iterations){
-    show(i)
+    show(paste0('MCMC-',i))
     # iterations <- 10000;i<-1
     ## Decision
     proposal <- proposalfunction(chain[c(1:i),],i,th)
@@ -149,8 +149,8 @@ print(paste("Model =",analysis,"/ Data =",datasetfile))
 start_time <- Sys.time()
 
 set.seed(100)
-chain = run_metropolis_MCMC(startvalue, 10000)
-burnIn = 2000
+chain = run_metropolis_MCMC(startvalue, 1000)
+burnIn = 200
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
