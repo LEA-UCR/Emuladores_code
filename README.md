@@ -6,14 +6,14 @@ Alfaro-Córdoba M, Barboza, L (2020) Statistical Emulator for Regional Climate M
 
 Contents:
 
-* [A package to read NARCCAP data](NarccapRDD)
+* [A package to read NARCCAP data](https://github.com/luisbarboza27/Emuladores_code/tree/master/NarccapRDD)
 
-* [Data](datos)
+* [Data](https://github.com/luisbarboza27/Emuladores_code/tree/master/datos)
 
-* [Simulation study to compare methods](simulation3)
+* [Simulation study to compare methods](https://github.com/luisbarboza27/Emuladores_code/tree/master/simulation3)
 
-* [Simulation with different Grids](simulationgrillas)
+* [Simulation with different Grids](https://github.com/luisbarboza27/Emuladores_code/tree/master/simulationgrillas)
 
-* [NARCCAP Descriptive Data Analysis](descriptiveNARCCAP)
+* [NARCCAP Descriptive Data Analysis](https://github.com/luisbarboza27/Emuladores_code/tree/master/descriptiveNARCCAP)
 
-* [NARCCAP Analysis](MCMC_NARCCAP)
+* [NARCCAP Analysis](https://github.com/luisbarboza27/Emuladores_code/tree/master/MCMC_NARCCAP)
