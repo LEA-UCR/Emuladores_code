@@ -67,7 +67,7 @@ f <- function(param) {
     loglike <- likelihoodFSA_Block(nu,phi,beta0,
                   beta1,sigma2,taue,model,type)
       }else {
-        MRA_num <- 4
+        MRA_num <- nn
         loglike <- likelihoodMRA(nu,phi,beta0,
                   beta1,sigma2,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
@@ -149,8 +149,8 @@ print(paste("Model =",analysis,"/ Data =",datasetfile))
 start_time <- Sys.time()
 
 set.seed(100)
-chain = run_metropolis_MCMC(startvalue, 10000)
-burnIn = 2000
+chain = run_metropolis_MCMC(startvalue, 1000)
+burnIn = 200
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
