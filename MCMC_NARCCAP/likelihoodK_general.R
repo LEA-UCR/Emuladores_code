@@ -211,14 +211,14 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
     blocks_Y <-list()
     blocks_muhat <-list()
     indices_blocks <- list()
-    Sigmaw <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
-    rownames(Sigmaw) <- colnames(Sigmaw) <- as.character(1:max(hh$indice_m))
-    C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
-    rownames(C) <- as.character(1:max(hh$indice_m))
-    colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
-    rownames(Cstar) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-    colnames(Cstar) <- rownames(Cstar)
+#    Sigmaw <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
+#    rownames(Sigmaw) <- colnames(Sigmaw) <- as.character(1:max(hh$indice_m))
+#    C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
+#    rownames(C) <- as.character(1:max(hh$indice_m))
+#    colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
+#    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
+#    rownames(Cstar) <- as.character(1:max(knotsMRA[[j]]$indice_m))
+#    colnames(Cstar) <- rownames(Cstar)
 
     for(i in 1:length(Wmat[[j]][[j]])){
       blocks_C[[i]] <- Wmat[[nMRA]][[j]][[i]]
@@ -227,7 +227,7 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
       blocks_Cstarinv[[i]] <- chol2inv(chol(blocks_Cstar[[i]]))
       blocks_Sigmaw[[i]] <- blocks_C[[i]] %*% blocks_Cstarinv[[i]] %*% t(blocks_C[[i]])
       indices_blocks[[i]] <- rownames(Wmat[[nMRA]][[j]][[i]])
-      Sigmaw[rownames(Wmat[[nMRA]][[j]][[i]]),rownames(Wmat[[nMRA]][[j]][[i]])] <- blocks_Sigmaw[[i]]
+#      Sigmaw[rownames(Wmat[[nMRA]][[j]][[i]]),rownames(Wmat[[nMRA]][[j]][[i]])] <- blocks_Sigmaw[[i]]
 #      C[rownames(Wmat[[nMRA]][[j]][[i]]),colnames(Wmat[[nMRA]][[j]][[i]])] <- blocks_C[[i]]
 #      Cstar[rownames(Wmat[[j]][[j]][[i]]),colnames(Wmat[[j]][[j]][[i]])] <- blocks_Cstar[[i]]
       blocks_XX[[i]] <- XX[indices_blocks[[i]],indices_blocks[[i]]]
@@ -238,7 +238,8 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
       }
     }
     
-    return(list(Sigmaw,blocks_C,blocks_Cstar,blocks_XSigmae,blocks_XX,blocks_Y,blocks_muhat,indices_blocks))
+    #return(list(Sigmaw,blocks_C,blocks_Cstar,blocks_XSigmae,blocks_XX,blocks_Y,blocks_muhat,indices_blocks))
+    return(list(blocks_C,blocks_Cstar,blocks_XSigmae,blocks_XX,blocks_Y,blocks_muhat,indices_blocks))
   }
   
   quad_SigmaY <- 0
@@ -246,16 +247,16 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
   for(k in nMRA:1){
     #show(k)
     matrices_MRA <- MRA.decompose(k)
-    Sigmaw <- matrices_MRA[[1]]
-    blocks_C <- matrices_MRA[[2]] 
-    blocks_Cstar <- matrices_MRA[[3]]
-    blocks_XSigmae <- matrices_MRA[[4]]
-    blocks_XX <- matrices_MRA[[5]]
-    blocks_Y <- matrices_MRA[[6]]
-    blocks_muhat <- matrices_MRA[[7]]
-    indices_blocks <- matrices_MRA[[8]]
+    #Sigmaw <- matrices_MRA[[1]]
+    blocks_C <- matrices_MRA[[1]] 
+    blocks_Cstar <- matrices_MRA[[2]]
+    blocks_XSigmae <- matrices_MRA[[3]]
+    blocks_XX <- matrices_MRA[[4]]
+    blocks_Y <- matrices_MRA[[5]]
+    blocks_muhat <- matrices_MRA[[6]]
+    indices_blocks <- matrices_MRA[[7]]
     if(k==nMRA){
-      SigmaB <- Sigmaw
+      #SigmaB <- Sigmaw
       blocks_SigmaYinv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
       SigmaYinv <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
       rownames(SigmaYinv) <- colnames(SigmaYinv) <- as.character(1:max(hh$indice_m))
@@ -268,7 +269,7 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
       blocks_det <- purrr::map_dbl(blocks_XSigmae,~det(.))
       logSigmaYdet <- sum(log(blocks_det))
     }else{
-      SigmaB <- SigmaB+Sigmaw
+      #SigmaB <- SigmaB+Sigmaw
       SigmaYinv_old <- SigmaYinv
       SigmaYinv <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
       rownames(SigmaYinv) <- colnames(SigmaYinv) <- as.character(1:max(hh$indice_m))
