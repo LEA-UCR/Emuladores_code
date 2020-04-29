@@ -117,7 +117,7 @@ run_metropolis_MCMC <- function(startvalue, iterations){
   chain[1,] = startvalue
   fchain <- f(chain[1,])
   for (i in 1:iterations){
-    show(paste0('MCMC-',i))
+    show(i)
     # iterations <- 10000;i<-1
     ## Decision
     proposal <- proposalfunction(chain[c(1:i),],i,th)
@@ -159,7 +159,7 @@ print(end_time-start_time)
 
 ### Summary: #######################
 
-png(filename=paste0("sim_res/plot",analysis,model,type,i,".png"))
+png(filename=paste0("sim_res/plot",analysis,model,type,'NARCCAP',".png"))
 par(mfrow = c(2,npar))
 hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of phi", 
      xlab="True value = red line")
@@ -193,4 +193,4 @@ abline(h = 1, col="red" )
 
 dev.off()
 
-save(chain, file=paste0("sim_res/chain",analysis,model,type,i,".Rdata"))
+save(chain, file=paste0("sim_res/chain",analysis,model,type,'NARCCAP',".Rdata"))
