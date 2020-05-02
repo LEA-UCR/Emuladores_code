@@ -15,8 +15,8 @@ analysis<-c("M1","M2","M3")
 extract_all <- function(analy, mod, typ, ind){
   file1 <- paste0("sim_res/chain",analy,mod,
                   typ,ind,".Rdata")
-  file2 <- paste0("sim_res/output_",ind,"_",typ,
-                  "_",mod,"_",analy,".txt")
+  #file2 <- paste0("sim_res/output_",ind,"_",typ,
+  #                "_",mod,"_",analy,".txt")
   load(file1)
   
   vars <- abs(geweke.diag(chain, frac1=0.1, frac2=0.5)$z)<
@@ -33,14 +33,13 @@ extract_all <- function(analy, mod, typ, ind){
   mse <- apply(chain,2,mse_func)
   mad_func <- function(x){median(abs(x-median(x)))}
   mad <- apply(chain,2,mad_func)
-  if(analy=="M3"){
-  time <- parse_number(as.character(read.delim(file2)[[1]][100103]))}
-    else{
-  time <- parse_number(as.character(read.delim(file2)[303,]))}
+ # if(analy=="M3"){
+ # time <- parse_number(as.character(read.delim(file2)[[1]][100103]))}
+ #   else{
+ # time <- parse_number(as.character(read.delim(file2)[303,]))}
   mcmc_desc <- cbind(bias,mse,mad)
   
-  return(descript=cbind(descriptives,mcmc_desc,
-                        time_chain=rep(time,4),converged=vars))
+  return(descript=cbind(descriptives,mcmc_desc,converged=vars))
 }
 
 
@@ -76,16 +75,16 @@ datos<-as_tibble(rbind(cbind(do.call(rbind,OP1),setting=rep(1,40)),
       cbind(do.call(rbind,OP11),setting=rep(11,40)),
       cbind(do.call(rbind,OP12),setting=rep(12,40))))
 
-datos_f<-datos %>% mutate(var=rep(1:4,120), rep=rep(rep(1:10,each=4),12)) %>% 
-  mutate(time_10x = time_chain*rep(c(rep(1/3,8),rep(1,4)),each=40))
+datos_f<-datos %>% mutate(var=rep(1:4,120), rep=rep(rep(1:10,each=4),12)) #%>% 
+#  mutate(time_10x = time_chain*rep(c(rep(1/3,8),rep(1,4)),each=40))
 summary(datos_f)
 unique(datos_f %>% filter(converged==0) %>% select(var,rep,setting))
 
 # time for 10000 iterations for each setting:
-datos_f %>% group_by(setting) %>% 
-  select(time_10x,setting) %>% 
-  summarise(mean_time=mean(time_10x), 
-            sd_time=sd(time_10x)) 
+#datos_f %>% group_by(setting) %>% 
+#  select(time_10x,setting) %>% 
+#  summarise(mean_time=mean(time_10x), 
+#            sd_time=sd(time_10x)) 
   
 a<-datos_f %>% group_by(var,setting) %>% 
   select(bias,mse,mad,setting) %>% 

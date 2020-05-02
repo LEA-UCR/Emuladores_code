@@ -15,7 +15,7 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
 }
 
 cExpMat <- function(points_sf1,points_sf2,type,range=1,
-                    variance,nu=1,alpha=1,beta=1){
+                    variance,nu=1,acau,bcau){
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
   if(type=='Exponential'){
@@ -30,7 +30,7 @@ cExpMat <- function(points_sf1,points_sf2,type,range=1,
   }
   if(type=='Cauchy'){
     m <- rdist.earth(coords1,coords2)
-    m <- (1+abs(m)^alpha)^(-beta/alpha) #Gneiting & Schlather, 2004
+    m <- (1+abs(m)^acau)^(-bcau/acau) #Gneiting & Schlather, 2004
   }
   return(m)
 }
