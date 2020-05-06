@@ -257,13 +257,13 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,MRA_num){
   for(k in MRA_num:1){
     matrices_MRA <- MRA.decompose(k)
     #Sigmaw <- matrices_MRA[[1]]
-    blocks_C <- matrices_MRA[[2]] 
-    blocks_Cstar <- matrices_MRA[[3]]
-    blocks_XSigmae <- matrices_MRA[[4]]
-    blocks_XX <- matrices_MRA[[5]]
-    blocks_Y <- matrices_MRA[[6]]
-    blocks_muhat <- matrices_MRA[[7]]
-    indices_blocks <- matrices_MRA[[8]]
+    blocks_C <- matrices_MRA[[1]] 
+    blocks_Cstar <- matrices_MRA[[2]]
+    blocks_XSigmae <- matrices_MRA[[3]]
+    blocks_XX <- matrices_MRA[[4]]
+    blocks_Y <- matrices_MRA[[5]]
+    blocks_muhat <- matrices_MRA[[6]]
+    indices_blocks <- matrices_MRA[[7]]
     if(k==MRA_num){
       #SigmaB <- Sigmaw
       blocks_SigmaYinv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))

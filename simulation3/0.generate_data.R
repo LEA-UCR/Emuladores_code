@@ -28,8 +28,8 @@ bcau <- 1 # fixed
 ### ############################ ###
 ###   Grid size and definition   ###
 ### ############################ ###
-nlat <- 20
-nlon <- 20
+nlat <- 40
+nlon <- 40
 gridbase <- expand.grid(lon=seq(0,1,length.out = nlon),
                         lat=seq(0,1,length.out = nlat))
 gridlist <- list(x=seq(0,1,length.out = nlon),
@@ -88,7 +88,8 @@ error <- rnorm(n*k, 0, sqrt(1/taue)) ### nugget
 hh <- SpatialPointsDataFrame(coords = gridbase,data = dataset)
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 save(dataset, hh, file=paste0("sim_data/dataset",
-                              model,type,i,".Rdata"))
+                              model,type,i,#nlat,
+                              ".Rdata"))
 }
 
 nsimulations <- 10

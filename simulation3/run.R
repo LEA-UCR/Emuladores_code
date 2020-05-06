@@ -6,14 +6,16 @@ if(length(args)==0){
   model<-"SVC"
   analysis<-"M3"
   datasetfile=paste0("sim_data/dataset",
-                     model,type,i,".Rdata")
+                     model,type,i,40,
+                     ".Rdata")
 } else {
   i<-args[1]
   type<-args[2]
   model<-args[3]
   analysis<-args[4]
   datasetfile=paste0("sim_data/dataset",
-                     model,type,i,".Rdata")
+                     model,type,i,40,
+                     ".Rdata")
 }
 
 # i<-1:100
