@@ -2,7 +2,7 @@ library(tidyverse)
 library(sf)
 library(sp)
 
-variable_narccap <- 'Prec' # Temp/Prec
+variable_narccap <- 'Temp' # Temp/Prec
 
 if(variable_narccap=='Temp'){
   load('../datos/NARCCAP/TStotal.RData')
@@ -36,7 +36,9 @@ if(variable_narccap=='Temp'){
 datos_filt <- base_filtrada %>% dplyr::select(Y,X)
 coordenadas <- base_filtrada %>% dplyr::select(lon,lat)
 
+datos_filt <- datos_filt %>% mutate(Y=log(log(Y)),X=log(log(X)))
 dataset <- datos_filt
+
 hh <- SpatialPointsDataFrame(coords = coordenadas,data = datos_filt)
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 bordes <- bbox(hh)

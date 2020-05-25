@@ -196,12 +196,11 @@ likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
   Y <- as.matrix(Y)
   muhat <- as.matrix(muhat)
   rownames(Y) <- rownames(muhat) <- rownames(XX)
-  
+  nMRA <- nMRA-1 #Quitar nivel con nodos=obs  
   matrices <- WQXYmakerMatern()
   Wmat <- matrices$W
 
   MRA.decompose <- function(j){
-    
     blocks_C <- list()
     blocks_Cstar <- list()
     blocks_Cstarinv <- list()

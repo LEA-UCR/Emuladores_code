@@ -14,7 +14,7 @@ crsglobal <- CRS('+proj=longlat +datum=WGS84')
 
 # MRA definitions: levels and partitions (4 levels and 
 # 4 partitions: default)
-nlevelsMRA <- 7 #Number of MRA levels (7)
+nlevelsMRA <- 4 #Number of MRA levels (7)
 npartitions <- 2
 npartitions_r <- 2
 npartitions_c <- npartitions/npartitions_r

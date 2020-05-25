@@ -3,7 +3,7 @@ args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   variable_narccap <- 'Temp'
   type<-"Exponential"
-  model<-"SVI"
+  model<-"SVC"
   analysis<-"M3"
   datasetfile=paste0("data_narccap/dataset",
                      variable_narccap,".Rdata")
