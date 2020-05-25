@@ -2,22 +2,24 @@
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   i<-1
-  type<-"Matern"
+  type<-"Cauchy"
   model<-"SVC"
   analysis<-"M3"
   datasetfile=paste0("sim_data/dataset",
-                     model,type,i,".Rdata")
+                     model,type,i,40,
+                     ".Rdata")
 } else {
   i<-args[1]
   type<-args[2]
   model<-args[3]
   analysis<-args[4]
   datasetfile=paste0("sim_data/dataset",
-                     model,type,i,".Rdata")
+                     model,type,i,40,
+                     ".Rdata")
 }
 
 # i<-1:100
-# type<-'Exponential', "Matern"
+# type<-'Exponential', "Matern", "Cauchy"
 # model<-'SVC', "SVI"
 # analysis<-"M1: likelihood", "M2: FSA", "M3: MRA2"
 
@@ -41,8 +43,10 @@ phi <- 0.9
 beta0 <- 0
 beta1 <- 2
 nu <- 1
+acau <- 1.8
+bcau <- 1
 
-startvalue <- c(phi,beta0,beta1,nu)
+startvalue <- c(phi,beta0,beta1,nu,acau)
 N <- dim(hh)[1]
 npar <- length(startvalue)
 
@@ -50,6 +54,7 @@ npar <- length(startvalue)
 taub <- 1
 taue <- 5
 sigma2 <- 1/taub
+
 ##################
 # L functions    #
 ##################
@@ -59,6 +64,7 @@ f <- function(param) {
   beta0 <- param[2]
   beta1 <- param[3]
   nu    <- param[4]
+  acau  <- param[5]
   if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
                   beta1,sigma2,taue,model,type)
@@ -70,12 +76,41 @@ f <- function(param) {
         MRA_num <- 2
         loglike <- likelihoodMRA(nu,phi,beta0,
                   beta1,sigma2,taue,model,type, MRA_num)}}
-  logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
-  logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
-  logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)
-  logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
-  logprior <- logpriorbeta0+logpriorbeta1+
-              logpriorphi+logpriornu
+  
+  if (model =="SVI"){
+    logpriorbeta0 <- dnorm(beta0,0,0.05,log=TRUE)
+    if (type == "Exponential"){
+      logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
+      logprior <- logpriorbeta0+logpriorphi
+    } else{
+      if(type == "Matern"){
+        logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
+        logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
+        logprior <- logpriorbeta0+logpriorphi+logpriornu
+      }else{
+        logprioracau  <- dunif(acau,1.7,1.9,log=TRUE) 
+        #logpriorbcau  <- dunif(bcau,0.25,1.25,log=TRUE) 
+        logprior <- logpriorbeta0+logprioracau#+logpriorbcau
+      }
+    }
+  }else{
+    logpriorbeta0 <- dnorm(beta0,0,0.05,log=TRUE)
+    logpriorbeta1 <- dnorm(beta1,2,0.05,log=TRUE)
+    if (type == "Exponential"){
+      logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
+      logprior <- logpriorbeta0+logpriorbeta1+logpriorphi
+    } else{
+      if(type == "Matern"){
+        logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
+        logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
+        logprior <- logpriorbeta0+logpriorbeta1+logpriorphi+logpriornu
+      }else{
+        logprioracau  <- dunif(acau,1.59,1.99,log=TRUE) 
+        #logpriorbcau  <- dunif(bcau,0.25,1.25,log=TRUE) 
+        logprior <- logpriorbeta0+logprioracau#+logpriorbcau
+      }
+  }}
+
   like <- -(loglike/2) +logprior
   return(as.numeric(like))
 }
@@ -84,7 +119,7 @@ f <- function(param) {
 # Main M-H  loop #
 ##################
 
-th <- c(0.01,0.01,0.01,0.01)
+th <- c(0.01,0.02,0.02,0.01,0.01)
 
 proposalfunction <- function(param,i,th){
   if (is.null(dim(param)[1])){
@@ -99,18 +134,13 @@ proposalfunction <- function(param,i,th){
     }
     mu <- param[i,]
   }
-  #alpha <- c(mu[1]^2/(th[1]*sd[1]))
-  #beta  <- c(th[1]*sd[1]/mu[1])
-  Yn <- c(#rgamma(1,shape=alpha[1],scale=beta[1]),
-          runif(1,0.8,1),
+  Yn <- c(runif(1,0.8,1),
           rnorm(1,mu[2],sd[2]),
           rnorm(1,mu[3],sd[3]),
-          runif(1,0.8,1.20))
+          runif(1,0.8,1.20),
+          runif(1,1,1.999))
   return(Yn)
-  #return(list(Yn,alpha,beta))
 }
-
-#metrop(f, startvalue, 10000)
 
 run_metropolis_MCMC <- function(startvalue, iterations){
   chain = array(dim = c(iterations+1,npar))
@@ -119,14 +149,7 @@ run_metropolis_MCMC <- function(startvalue, iterations){
     # iterations <- 10000;i<-1
     ## Decision
     proposal <- proposalfunction(chain[c(1:i),],i,th)
-    #proposal <- proposal_all[[1]]
-    #alpha <- proposal_all[[2]]
-    #beta <- proposal_all[[3]]
-    probab <- min(0,
-    f(proposal) -
-    #+ dgamma(chain[i,1],alpha[1],beta[1], log=TRUE)-
-      f(chain[i,]))
-    #- dgamma(proposal[1],alpha[1],beta[1], log=TRUE))
+    probab <- min(0, f(proposal) - f(chain[i,]))
     alphan <- exp(probab)
     if (log(runif(1)) <= probab){
       chain[i+1,] = proposal
@@ -155,12 +178,15 @@ print(end_time-start_time)
 
 ### Summary: #######################
 
-png(filename=paste0("sim_res/plot",analysis,model,type,i,".png"))
-par(mfrow = c(2,npar))
-hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of phi", 
-     xlab="True value = red line")
-abline(v = mean(chain[-(1:burnIn),1]), col="green")
-abline(v = 0.9, col="red" )
+# orden: phi <- 0.9, beta0 <- 0, beta1 <- 2, nu <- 1
+# acau <- 0.5, bcau <- 0.5
+
+#png(filename=paste0("sim_res/plot",analysis,model,type,i,".png"))
+par(mfrow = c(2,npar-2))
+#hist(chain[-(1:burnIn),1],nclass=30, main="Posterior of phi", 
+#     xlab="True value = red line")
+#abline(v = mean(chain[-(1:burnIn),1]), col="green")
+#abline(v = 0.9, col="red" )
 hist(chain[-(1:burnIn),2],nclass=30, main="Posterior of beta0", 
      xlab="True value = red line")
 abline(v = mean(chain[-(1:burnIn),2]), col="green")
@@ -169,24 +195,38 @@ hist(chain[-(1:burnIn),3],nclass=30, main="Posterior of beta1",
      xlab="True value = red line")
 abline(v = mean(chain[-(1:burnIn),3]), col="green")
 abline(v = 2, col="red" )
-hist(chain[-(1:burnIn),4],nclass=30, main="Posterior of nu", 
+#hist(chain[-(1:burnIn),4],nclass=30, main="Posterior of nu", 
+#     xlab="True value = red line")
+#abline(v = mean(chain[-(1:burnIn),4]), col="green")
+#abline(v = 1, col="red" )
+hist(chain[-(1:burnIn),5],nclass=30, main="Posterior of acau", 
      xlab="True value = red line")
-abline(v = mean(chain[-(1:burnIn),4]), col="green")
-abline(v = 1, col="red" )
+abline(v = mean(chain[-(1:burnIn),5]), col="green")
+abline(v = 1.8, col="red" )
+# hist(chain[-(1:burnIn),6],nclass=30, main="Posterior of bcau", 
+#      xlab="True value = red line")
+# abline(v = mean(chain[-(1:burnIn),6]), col="green")
+# abline(v = 0.5, col="red" )
 
-plot(chain[-(1:burnIn),1], type = "l", xlab="True value = red line" , 
-     main = "Chain values of phi", )
-abline(h = 0.9, col="red" )
+#plot(chain[-(1:burnIn),1], type = "l", xlab="True value = red line" , 
+#     main = "Chain values of phi", )
+#abline(h = 0.9, col="red" )
 plot(chain[-(1:burnIn),2], type = "l", xlab="True value = red line" , 
      main = "Chain values of beta0", )
 abline(h = 0, col="red" )
 plot(chain[-(1:burnIn),3], type = "l", xlab="True value = red line" , 
      main = "Chain values of beta1", )
 abline(h = 2, col="red" )
-plot(chain[-(1:burnIn),4], type = "l", xlab="True value = red line" , 
-     main = "Chain values of nu", )
-abline(h = 1, col="red" )
+#plot(chain[-(1:burnIn),4], type = "l", xlab="True value = red line" , 
+#     main = "Chain values of nu", )
+#abline(h = 1, col="red" )
+plot(chain[-(1:burnIn),5], type = "l", xlab="True value = red line" , 
+     main = "Chain values of acau", )
+abline(h = 1.8, col="red" )
+# plot(chain[-(1:burnIn),6], type = "l", xlab="True value = red line" , 
+#      main = "Chain values of bcau", )
+# abline(h = 0.5, col="red" )
 
-dev.off()
+#dev.off()
 
-save(chain, file=paste0("sim_res/chain",analysis,model,type,i,".Rdata"))
+#save(chain, file=paste0("sim_res/chain",analysis,model,type,i,".Rdata"))

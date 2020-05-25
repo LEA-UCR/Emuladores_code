@@ -23,11 +23,13 @@ nu <- 1  # roughness parameter
 range <- 0.9 # range parameter
 taub <- 1 # Precision parameter for beta
 sigma2 = 1/taub # variance
+acau <- 1.8
+bcau <- 1 # fixed
 ### ############################ ###
 ###   Grid size and definition   ###
 ### ############################ ###
-nlat <- 20
-nlon <- 20
+nlat <- 40
+nlon <- 40
 gridbase <- expand.grid(lon=seq(0,1,length.out = nlon),
                         lat=seq(0,1,length.out = nlat))
 gridlist <- list(x=seq(0,1,length.out = nlon),
@@ -36,7 +38,7 @@ n <- dim(gridbase)[1] #Number of spatial points
 k <- 1 #Observations through time 
 #Random field generator
 rExpMat <- function(n,coords,type,range,variance,nu=1,
-                    alpha=1,beta=1){
+                    acau,bcau){
   if(type=='Exponential'){
     m <- stationary.cov(coords,Covariance = type,
                         Distance = 'rdist.earth',
@@ -49,7 +51,7 @@ rExpMat <- function(n,coords,type,range,variance,nu=1,
   }
   if(type=='Cauchy'){
     m <- rdist.earth(coords)
-    m <- (1+abs(m)^alpha)^(-beta/alpha) #Gneiting & Schlather, 2004
+    m <- (1+abs(m)^acau)^(-bcau/acau) #Gneiting & Schlather, 2004
   }
   return(drop(crossprod(chol(m),
                         matrix(rnorm(nrow(coords)*n), ncol=n))))
@@ -58,9 +60,11 @@ rExpMat <- function(n,coords,type,range,variance,nu=1,
 ### Spatial parameter generation ###
 ### ############################ ###
 beta1s <- rExpMat(ncov,gridbase,type = type,
-                 range = range,variance = sigma2)
+                 range = range,variance = sigma2, 
+                 acau=acau, bcau=bcau)
 GPerror <- rExpMat(ncov,gridbase,type = type,
-                  range = range,variance = sigma2)
+                  range = range,variance = sigma2, 
+                  acau=acau, bcau=bcau)
 #Nugget effect generation
 error <- rnorm(n*k, 0, sqrt(1/taue)) ### nugget
 ### ############################ ###
@@ -84,7 +88,8 @@ error <- rnorm(n*k, 0, sqrt(1/taue)) ### nugget
 hh <- SpatialPointsDataFrame(coords = gridbase,data = dataset)
 proj4string(hh) <- '+proj=longlat +datum=WGS84'
 save(dataset, hh, file=paste0("sim_data/dataset",
-                              model,type,i,".Rdata"))
+                              model,type,i,#nlat,
+                              ".Rdata"))
 }
 
 nsimulations <- 10
