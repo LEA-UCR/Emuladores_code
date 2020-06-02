@@ -21,6 +21,9 @@ NC2DFR <- function(PATH){
   c1 <- separate(tibble(listfilesregional),1, sep="_", as.character(c(1:4))) %>% select("1")
   c1 <- paste(c1[1,1])
 
+  dataset.time <- substr(separate(tibble(listfilesregional),1, sep="_", as.character(c(1:4)))$'4',1,4)
+  #Crear un vector del inicio del tiempo de cada base
+  
   for(i in 1:length(listfilesregional)){
     show(paste0('Construccion datos mensuales-Regional-',i))
     regional <- ncdf4::nc_open(paste0(dirbaseregional,listfilesregional[i]))  ##Leemos el archivo .nc utilizando la lista previamente creada
@@ -35,8 +38,18 @@ NC2DFR <- function(PATH){
     blongitude <- c(min(lonvar)-1.4,floor(max(lonvar))+1.4)
     blongitudet <- rbind(blongitudet,blongitude)
 
-    fechabase <- lubridate::ymd('1968-01-01') ##Se establece la fecha desde la que comienza a contar el tiempo en el modelo
-    timevar <- fechabase+lubridate::as.period(ddays(timevar)) ##Transforma la variable de tiempo a formato Año mes día
+    fechabase <- lubridate::ymd(paste0(dataset.time[i],'-01-01')) #definir el primer tiempo de la base
+    timevar <- timevar-floor(timevar[1])    #redefinir el tiempo
+    timevar <- fechabase+lubridate::ddays(timevar) ##Transforma la variable de tiempo a formato Año mes día
+    
+    #identificar los dias "29 de febrero".
+    find_leap = function(x){
+      day(x) == 29 & month(x) == 2 
+    }
+    timevar1<-timevar[!find_leap(timevar)] ##eliminar los dias "29 de febrero"
+    moredays<-timevar[length(timevar)]+ lubridate::ddays(seq(from=1/8, length=sum(find_leap(timevar)), by=1/8))
+    timevar<-c(timevar1,moredays)
+    
     dimnames(varreg_pre)[[1]] <- xcvar
     dimnames(varreg_pre)[[2]] <- ycvar
     dimnames(varreg_pre)[[3]] <- as.character(timevar) ##Define nombres a los ejes del conjunto de los datos
