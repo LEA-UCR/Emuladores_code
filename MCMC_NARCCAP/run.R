@@ -38,11 +38,11 @@ nn<-aa[[4]];hh<-aa[[5]]
 # initial values
 
 phi <- 0.9
-beta0 <- 0
-beta1 <- 2
 nu <- 1
+beta <- c(0,rep(1,5))
 
-startvalue <- c(phi,beta0,beta1,nu)
+
+startvalue <- c(phi,nu,beta)
 N <- dim(hh)[1]
 npar <- length(startvalue)
 
@@ -50,15 +50,17 @@ npar <- length(startvalue)
 taub <- 1
 taue <- 5
 sigma2 <- 1/taub
+nCov <- length(beta)
+A <- diag(nCov)
+types <- rep('Exponential',length(beta))
 ##################
 # L functions    #
 ##################
 
 f <- function(param) {
   phi   <- param[1]
-  beta0 <- param[2]
-  beta1 <- param[3]
-  nu    <- param[4]
+  nu    <- param[2]
+  beta <- param[-c(1,2)]
   if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
                   beta1,sigma2,taue,model,type)
@@ -68,8 +70,7 @@ f <- function(param) {
                   beta1,sigma2,taue,model,type)
       }else {
         MRA_num <- nn
-        loglike <- likelihoodMRA(nu,phi,beta0,
-                  beta1,sigma2,taue,model,type, MRA_num)}}
+        loglike <- likelihoodMRA(nu,phi,beta,A,nCov,taue,model,type, MRA_num)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
   logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
   logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)

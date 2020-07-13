@@ -1,12 +1,11 @@
 library(raster) 
-library(purrr)
-library(tidyr)
-library(dplyr)
+library(tidyverse)
 library(sf)
 
 gen_resolution <- function(dataset_file){
 load(datasetfile) # data loading
-hh <- hh[hh$lat>=26 & hh$lat<=70 & hh$lon>=235 & hh$lon<=290,]
+#hh <- hh[hh$lat>=26 & hh$lat<=70 & hh$lon>=235 & hh$lon<=290,]
+  hh <- hh[hh$lat>=20 & hh$lat<=40 & hh$lon>=240 & hh$lon<=265,]  
 # parameters of the raster using the spatial structure
 bordes <- bbox(hh)
 crsglobal <- CRS('+proj=longlat +datum=WGS84')

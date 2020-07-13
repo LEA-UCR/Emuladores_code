@@ -1,6 +1,7 @@
 library(pdist)
 library(fields)
 library(RandomFields)
+library(furrr)
 
 corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   coords1 <- st_coordinates(points_sf1$geometry)
@@ -15,7 +16,7 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
 }
 
 cExpMat <- function(points_sf1,points_sf2,type,range=1,
-                    variance,nu=1,alpha=1,beta=1){
+                    variance=1,nu=1,alpha=1,beta=1){
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
   if(type=='Exponential'){
@@ -35,11 +36,17 @@ cExpMat <- function(points_sf1,points_sf2,type,range=1,
   return(m)
 }
 
-covKolmogorovHurst <- function(points_sf1,points_sf2,H,variance){
-  coords1 <- st_coordinates(points_sf1$geometry)
-  coords2 <- st_coordinates(points_sf2$geometry)
-  m <- ifelse(identical(coords1,coords2)==TRUE,
-              list(as.matrix(dist(coords1,diag = T,upper = T))),
-              list(as.matrix(pdist(coords1,coords2))))
-  m <- variance*m^(4*H-4)
+cExpMat_mult <- function(points_sf1,points_sf2,A,nCov=1,typesCov,range,
+                         nu,alpha,beta){
+  matricesCov <- NULL
+  Fun_aug <- function(i){
+    matricesCov[[i]] <- cExpMat(points_sf1,points_sf2,typesCov[i],range,
+                                variance=1,nu,alpha,beta)
+    return(as.matrix(kronecker(matricesCov[[i]],Matrix(A[,i]%*%t(A[,i])))))
+  }
+  #plan(multiprocess)
+  #matrices_aug <- future_map(1:nCov,~Fun_aug(.))
+  matrices_aug <- purrr::map(1:nCov,~Fun_aug(.))
+  
+  return(Reduce("+",matrices_aug))
 }

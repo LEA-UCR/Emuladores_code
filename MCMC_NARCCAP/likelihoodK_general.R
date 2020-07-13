@@ -120,6 +120,7 @@ WQXYmakerMatern <- function(){
   Xlist <- list()
   Ylist <- list()
   for(m in 0:(nn-1)){
+    show(m)
     M <- m+1
     Qlist[[M]] <- list()
     Xlist[[M]] <- list()
@@ -157,19 +158,16 @@ WQXYmakerMatern <- function(){
               t(Wlist[[l]][[k]][[jl]])
           }
         }
-        Wlist[[M]][[l]][[jm]] <- cExpMat(Qlist[[M]][[jm]],
-                                         Qlist[[l]][[jl]],
-                                         type,phi,sigma2,nu, 
-                                         acau=acau, bcau=bcau)-factorW
-        rownames(Wlist[[M]][[l]][[jm]]) <- as.character(Qlist[[M]][[jm]]$indice_m)
-        colnames(Wlist[[M]][[l]][[jm]]) <- as.character(Qlist[[l]][[jl]]$indice_m)
-        
-        #Wlist[[M]][[l]][[jm]] <- corrMaternduo(Qlist[[M]][[jm]],
-        #                                       Qlist[[l]][[jl]],
-        #                                       kappa,
-        #                                       sigma2)-factorW
-        #        Wlist[[M]][[l]][[jm]] <- corrMaternduo_fields(Qlist[[M]][[jm]],
-        #                                               Qlist[[l]][[jl]],sigma2)-factorW
+        #Wlist[[M]][[l]][[jm]] <- cExpMat(Qlist[[M]][[jm]],
+        #                                 Qlist[[l]][[jl]],
+        #                                 type,phi,sigma2,nu, 
+        #                                 acau=acau, bcau=bcau)-factorW
+        Wlist[[M]][[l]][[jm]] <- cExpMat_mult(Qlist[[M]][[jm]],
+                                         Qlist[[l]][[jl]],A,nCov,
+                                         types,range=phi,nu=nu, 
+                                         alpha=acau, beta=bcau)-factorW 
+        rownames(Wlist[[M]][[l]][[jm]]) <- unlist(purrr::map(as.character(Qlist[[M]][[jm]]$indice_m),~rep(.,nCov)))
+        colnames(Wlist[[M]][[l]][[jm]]) <- unlist(purrr::map(as.character(Qlist[[l]][[jl]]$indice_m),~rep(.,nCov)))
         
         #image.plot(Wlist[[M]][[l]][[jm]],legend.lab = paste(M,l,sep = '-'))
       }
@@ -180,30 +178,27 @@ WQXYmakerMatern <- function(){
   return(matrices_r)
 }
 
-likelihoodMRA <- function(nu,phi,beta0,beta1,sigma2,taue,model,type,nMRA){
+likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA){
   source('likelihoodK_general.R')
   library(Matrix)
   library(plot.matrix)
   Y <- hh$Y
-  if(model == "SVC"){
-    X <- as.vector(scale(hh$X))
-    XX <- diag(hh$X)
-    muhat <- beta0+beta1*X
-  } else {
-    X <- hh$X
-    XX <- diag(length(X))
-    muhat <- beta0+beta1*X
-  }
+  X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
+                   dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
+  #X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
+  #             dplyr::select(interc,TREFHT,OMEGA)))
+  XX <- bdiag(purrr::map(1:dim(X)[1],~t(X[.,])))
+  muhat <- X%*%beta
   
-  rownames(XX) <- colnames(XX) <- as.character(1:max(hh$indice_m))
-  Y <- as.matrix(Y)
+  Y <- as.matrix(Y) 
   muhat <- as.matrix(muhat)
-  rownames(Y) <- rownames(muhat) <- rownames(XX)
-  nMRA <- nMRA-1 #Quitar nivel con nodos=obs  
+  rownames(Y) <- rownames(muhat) <- as.character(1:max(hh$indice_m))
+  nMRA <- nMRA-1 #Quitar nivel con nodos=obs
   matrices <- WQXYmakerMatern()
   Wmat <- matrices$W
-
+  
   MRA.decompose <- function(j){
+    browser()
     blocks_C <- list()
     blocks_Cstar <- list()
     blocks_Cstarinv <- list()
