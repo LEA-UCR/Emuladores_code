@@ -46,7 +46,7 @@ nu <- 1
 acau <- 1.8
 bcau <- 1
 
-startvalue <- c(phi,beta0,beta1,nu,acau)
+startvalue <- c(phi,beta0,beta1,nu,acau,bcau)
 N <- dim(hh)[1]
 npar <- length(startvalue)
 
@@ -65,6 +65,7 @@ f <- function(param) {
   beta1 <- param[3]
   nu    <- param[4]
   acau  <- param[5]
+  bcau  <- param[6]
   if (analysis=="M1"){
     loglike <- likelihoodGaussian(nu,phi,beta0,
                   beta1,sigma2,taue,model,type)
@@ -89,7 +90,7 @@ f <- function(param) {
         logprior <- logpriorbeta0+logpriorphi+logpriornu
       }else{
         logprioracau  <- dunif(acau,1.7,1.9,log=TRUE) 
-        #logpriorbcau  <- dunif(bcau,0.25,1.25,log=TRUE) 
+        logpriorbcau  <- dunif(bcau,0.25,1.25,log=TRUE) 
         logprior <- logpriorbeta0+logprioracau#+logpriorbcau
       }
     }
@@ -106,7 +107,7 @@ f <- function(param) {
         logprior <- logpriorbeta0+logpriorbeta1+logpriorphi+logpriornu
       }else{
         logprioracau  <- dunif(acau,1.59,1.99,log=TRUE) 
-        #logpriorbcau  <- dunif(bcau,0.25,1.25,log=TRUE) 
+        logpriorbcau  <- dunif(bcau,0.25,1.25,log=TRUE) 
         logprior <- logpriorbeta0+logprioracau#+logpriorbcau
       }
   }}
@@ -119,26 +120,37 @@ f <- function(param) {
 # Main M-H  loop #
 ##################
 
-th <- c(0.01,0.02,0.02,0.01,0.01)
+th <- c(0.01,0.02,0.02,0.01,0.01,0.01)
 
 proposalfunction <- function(param,i,th){
   if (is.null(dim(param)[1])){
     sd <- th
     mu <- param
+    #max <- rep(1.99,6)
+    #min <- rep(0,6)
   }else{
     sd <- apply(param,2,sd)
-    if (sum(sd) < 0.0001){
+    #maxi <- apply(param,2,max)
+    #mini <- apply(param,2,min)
+    if (sum(sd[1:4]) < 0.0001){
       sd <- th
+     # max <- rep(1.99,6)
+     # min <- rep(0,6)
     }else{
       sd <- sd
+     # max <- maxi
+     # min <- mini
     }
     mu <- param[i,]
   }
+  shape1a <- (mu[5]-1)/((2-(mu[5])))*5
+  shape1b <- (mu[6]-0.5)/((1.5-(mu[6])))*1
   Yn <- c(runif(1,0.8,1),
           rnorm(1,mu[2],sd[2]),
           rnorm(1,mu[3],sd[3]),
           runif(1,0.8,1.20),
-          runif(1,1,1.999))
+          1+rbeta(1,shape1a,5),
+          0.5+rbeta(1,shape1b,1))
   return(Yn)
 }
 
@@ -168,8 +180,8 @@ print(paste("Model =",analysis,"/ Data =",datasetfile))
 start_time <- Sys.time()
 
 set.seed(19)
-chain = run_metropolis_MCMC(startvalue, 10000)
-burnIn = 2000
+chain = run_metropolis_MCMC(startvalue, 8000)
+burnIn = 1000
 acceptance = 1-mean(duplicated(chain[-(1:burnIn),]));acceptance
 
 end_time <- Sys.time()
@@ -203,10 +215,10 @@ hist(chain[-(1:burnIn),5],nclass=30, main="Posterior of acau",
      xlab="True value = red line")
 abline(v = mean(chain[-(1:burnIn),5]), col="green")
 abline(v = 1.8, col="red" )
-# hist(chain[-(1:burnIn),6],nclass=30, main="Posterior of bcau", 
-#      xlab="True value = red line")
-# abline(v = mean(chain[-(1:burnIn),6]), col="green")
-# abline(v = 0.5, col="red" )
+hist(chain[-(1:burnIn),6],nclass=30, main="Posterior of bcau",
+     xlab="True value = red line")
+abline(v = mean(chain[-(1:burnIn),6]), col="green")
+abline(v = 0.5, col="red" )
 
 #plot(chain[-(1:burnIn),1], type = "l", xlab="True value = red line" , 
 #     main = "Chain values of phi", )
@@ -223,9 +235,9 @@ abline(h = 2, col="red" )
 plot(chain[-(1:burnIn),5], type = "l", xlab="True value = red line" , 
      main = "Chain values of acau", )
 abline(h = 1.8, col="red" )
-# plot(chain[-(1:burnIn),6], type = "l", xlab="True value = red line" , 
-#      main = "Chain values of bcau", )
-# abline(h = 0.5, col="red" )
+plot(chain[-(1:burnIn),6], type = "l", xlab="True value = red line" ,
+     main = "Chain values of bcau", )
+abline(h = 0.5, col="red" )
 
 #dev.off()
 
