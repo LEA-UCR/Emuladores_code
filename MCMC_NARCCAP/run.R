@@ -21,17 +21,21 @@ if(length(args)==0){
 # model<-'SVC', "SVI"
 # analysis<-"M1: likelihood", "M2: FSA", "M3: MRA2"
 
-source("1.MRA_resolution_general.R")
+source("1.MRA_resolution_general_temp.R")
 source('covariances.R')
-source('likelihoodK_general.R')
+source('likelihoodK_general_temp.R')
 library(MCMCpack)
 library(truncdist)
 library(invgamma)
 library(Matrix)
 
 aa<-gen_resolution(datasetfile)
-bordes<-aa[[1]];indicesW<-aa[[2]];knotsMRA<-aa[[3]]
-nn<-aa[[4]];hh<-aa[[5]]
+Tm <- aa[[1]]
+TSm <- aa[[2]]
+Qlist <- aa[[3]]
+nn<-aa[[4]]
+
+hh <- Qlist[[nn+2]]
 
 #### Metropolis Hastings
 

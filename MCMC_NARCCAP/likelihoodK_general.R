@@ -1,24 +1,3 @@
-likelihoodBanerjee <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
-  C <- cExpMat(knotsMRA[[1]],hh,type,phi,sigma2,nu, 
-               acau=acau, bcau=bcau)
-  Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu, 
-                   acau=acau, bcau=bcau)
-  Sigma <- t(C) %*% chol2inv(chol(Cstar)) %*% C 
-  Y <- hh$Y
-  if(model == "SVC"){
-    X <- as.vector(scale(hh$X))
-    XX <- diag(X)
-    muhat <- beta0+beta1*X
-  } else {X <- hh$X
-  XX <- diag(length(X))
-  muhat <- beta0+beta1*X
-  }
-  Sigmainv <- chol2inv(chol(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))
-  m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
-    t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
-  return(m2logv)
-}
-
 Blockmatrix <- function(iP){
   ndim <- length(iP)
   imatrix <- matrix(1,nrow = ndim,ncol = ndim)
@@ -70,7 +49,7 @@ likelihoodFSA_Block <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
     XX <- diag(length(X))
     muhat <- beta0+beta1*X
   }
-
+  
   C <- cExpMat(knotsMRA[[1]],hh,type,phi,sigma2,nu, 
                acau=acau, bcau=bcau)
   Cstar <- cExpMat(knotsMRA[[1]],knotsMRA[[1]],type,phi,sigma2,nu,
@@ -114,77 +93,53 @@ likelihoodGaussian  <- function(nu,phi,beta0,beta1,sigma2,taue,model,type){
   return(m2logv)
 }
 
-WQXYmakerMatern <- function(){
-  Qlist <- list()
+W_maker <- function(){
   Wlist <- list()
-  Xlist <- list()
-  Ylist <- list()
-  for(m in 0:(nn-1)){
-    show(m)
-    M <- m+1
-    Qlist[[M]] <- list()
-    Xlist[[M]] <- list()
-    Ylist[[M]] <- list()
-    Wlist[[M]] <- list()
-    for(l in 1:M){
-      Wlist[[M]][[l]] <- list()
+  WSlist <- list()
+  # Initialize matrices
+  for(m in 0:nn){
+    Wlist[[m+1]] <- list()
+    WSlist[[m+1]] <- list()
+    for(l in 0:m){
+      Wlist[[m+1]][[l+1]] <- list()
     }
-    for(jm in 1:(dim(indicesW[[M]])[1])){
-      Qlist[[M]][[jm]] <- knotsMRA[[M]] %>% 
-        filter(.data[[paste0('iP',M)]]==jm)
-      #Xlist[[M]][[jm]] <- diag((hh %>% 
-      #                            filter(.data[[paste0('iP',M)]]==jm) %>%
-      #                            dplyr::select(X))$X)
-      #Ylist[[M]][[jm]] <- (hh %>%
-      #                       filter(.data[[paste0('iP',M)]]==jm) %>%
-      #                       dplyr::select(Y))$Y
-      indicesjerarq <- Qlist[[M]][[jm]] %>% 
-        dplyr::select(starts_with('iP'))%>%
-        st_drop_geometry()
-      for(l in 1:M){
-        #        show(l)
-        jl <- as.numeric(indicesjerarq %>% 
-                           dplyr::select(.data[[paste0('iP',l)]]) %>% unique())
-        factorW <- 0
-        if(l!=1){
-          factorW <- 0
-          for(k in 1:(l-1)){
-            jk <- as.numeric(indicesjerarq %>% 
-                               dplyr::select(.data[[paste0('iP',k)]]) %>% unique())  
-            #diag(Wlist[[k]][[k]][[jk]])<-diag(Wlist[[k]][[k]][[jk]])+
-            # rep(sigma2,dim(Wlist[[k]][[k]][[jk]])[1])
-            factorW <- factorW + Wlist[[M]][[k]][[jm]]%*%
-              chol2inv(chol(Wlist[[k]][[k]][[jk]]))%*%
-              t(Wlist[[l]][[k]][[jl]])
-          }
+  }
+  
+  for(m in 0:nn){
+    show(m)
+    for(l in 0:m){
+      if(l==0){
+        k <- 0
+        Wlist[[m+1]][[l+1]][[k+1]] <- Matrix(cExpMat_mult(Qlist[[m+1]],
+                                                   Qlist[[l+1]],A,nCov,
+                                                   types,range=phi,nu=nu, 
+                                                   alpha=acau, beta=bcau))
+        WSlist[[m+1]][[k+1]] <- Matrix(cExpMat_mult(Qlist[[nn+2]],
+                                                    Qlist[[m+1]],A,nCov,
+                                                    types,range=phi,nu=nu, 
+                                                    alpha=acau, beta=bcau))
+      }else{
+        Wlist[[m+1]][[l+1]][[1]] <- Matrix(cExpMat_mult(Qlist[[m+1]],
+                                                          Qlist[[l+1]],A,nCov,
+                                                          types,range=phi,nu=nu, 
+                                                          alpha=acau, beta=bcau))
+        for(k in 0:(l-1)){
+          Wlist[[m+1]][[l+1]][[k+2]] <- (Wlist[[m+1]][[l+1]][[k+1]]-Wlist[[m+1]][[k+1]][[k+1]]%*%solve(Wlist[[k+1]][[k+1]][[k+1]])%*%t(Wlist[[l+1]][[k+1]][[k+1]]))*Tm[[m+1]][[l+1]][[k+2]]
+          WSlist[[m+1]][[k+2]] <- (WSlist[[m+1]][[k+1]]-WSlist[[k+1]][[k+1]]%*%solve(Wlist[[k+1]][[k+1]][[k+1]])%*%t(Wlist[[m+1]][[k+1]][[k+1]]))*TSm[[m+1]][[k+2]]
         }
-        #Wlist[[M]][[l]][[jm]] <- cExpMat(Qlist[[M]][[jm]],
-        #                                 Qlist[[l]][[jl]],
-        #                                 type,phi,sigma2,nu, 
-        #                                 acau=acau, bcau=bcau)-factorW
-        Wlist[[M]][[l]][[jm]] <- cExpMat_mult(Qlist[[M]][[jm]],
-                                         Qlist[[l]][[jl]],A,nCov,
-                                         types,range=phi,nu=nu, 
-                                         alpha=acau, beta=bcau)-factorW 
-        rownames(Wlist[[M]][[l]][[jm]]) <- unlist(purrr::map(as.character(Qlist[[M]][[jm]]$indice_m),~rep(.,nCov)))
-        colnames(Wlist[[M]][[l]][[jm]]) <- unlist(purrr::map(as.character(Qlist[[l]][[jl]]$indice_m),~rep(.,nCov)))
-        
-        #image.plot(Wlist[[M]][[l]][[jm]],legend.lab = paste(M,l,sep = '-'))
       }
     }
   }
-  #matrices_r <- list(W=Wlist,X=Xlist,Y=Ylist)
-  matrices_r <- list(W=Wlist)
+  Lambda_list <- purrr::map(1:(nn+1),~return(Wlist[[.]][[.]][[.]]))
+  B_list <- purrr::map(1:(nn+1),~return(WSlist[[.]][[.]]))
+  matrices_r <- list(Lambda=Lambda_list,B=B_list)
   return(matrices_r)
 }
 
 likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA){
-  source('likelihoodK_general.R')
-  library(Matrix)
-  library(plot.matrix)
   Y <- hh$Y
   X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
-                   dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
+                                      dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
   #X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
   #             dplyr::select(interc,TREFHT,OMEGA)))
   XX <- bdiag(purrr::map(1:dim(X)[1],~t(X[.,])))
@@ -192,10 +147,18 @@ likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA){
   
   Y <- as.matrix(Y) 
   muhat <- as.matrix(muhat)
-  rownames(Y) <- rownames(muhat) <- as.character(1:max(hh$indice_m))
-  nMRA <- nMRA-1 #Quitar nivel con nodos=obs
-  matrices <- WQXYmakerMatern()
-  Wmat <- matrices$W
+  matrices <- W_maker()
+  browser()
+  Lambda_m <- matrices$Lambda
+  B_m <- matrices$B
+  B <- do.call(cbind,B_m)
+  Lambda <- bdiag(Lambda_m)
+
+  Sigma <- B %*% Lambda %*% t(B)
+  Sigmainv <- solve(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1]))
+  m2logv <- log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+
+    t(Y-muhat)%*%Sigmainv%*%(Y-muhat)
+  
   
   MRA.decompose <- function(j){
     browser()
@@ -208,16 +171,16 @@ likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA){
     blocks_Y <-list()
     blocks_muhat <-list()
     indices_blocks <- list()
-#    Sigmaw <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
-#    rownames(Sigmaw) <- colnames(Sigmaw) <- as.character(1:max(hh$indice_m))
-#    C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
-#    rownames(C) <- as.character(1:max(hh$indice_m))
-#    colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-#    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),
-#                     ncol = max(knotsMRA[[j]]$indice_m))
-#    rownames(Cstar) <- as.character(1:max(knotsMRA[[j]]$indice_m))
-#    colnames(Cstar) <- rownames(Cstar)
-
+    #    Sigmaw <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
+    #    rownames(Sigmaw) <- colnames(Sigmaw) <- as.character(1:max(hh$indice_m))
+    #    C <- matrix(0,nrow = max(hh$indice_m),ncol = max(knotsMRA[[j]]$indice_m))
+    #    rownames(C) <- as.character(1:max(hh$indice_m))
+    #    colnames(C) <- as.character(1:max(knotsMRA[[j]]$indice_m))
+    #    Cstar <- matrix(0,nrow = max(knotsMRA[[j]]$indice_m),
+    #                     ncol = max(knotsMRA[[j]]$indice_m))
+    #    rownames(Cstar) <- as.character(1:max(knotsMRA[[j]]$indice_m))
+    #    colnames(Cstar) <- rownames(Cstar)
+    
     for(i in 1:length(Wmat[[j]][[j]])){
       blocks_C[[i]] <- Wmat[[nMRA]][[j]][[i]]
       blocks_Cstar[[i]] <- Wmat[[j]][[j]][[i]]
@@ -263,12 +226,12 @@ likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA){
       blocks_SigmaYinv <- purrr::map(blocks_XSigmae,~chol2inv(chol(.)))
       SigmaYinv <- matrix(0,nrow = max(hh$indice_m),ncol = max(hh$indice_m))
       rownames(SigmaYinv) <- colnames(SigmaYinv) <- as.character(1:max(hh$indice_m))
-
+      
       for(i in 1:length(blocks_SigmaYinv)){
         SigmaYinv[indices_blocks[[i]],indices_blocks[[i]]] <- blocks_SigmaYinv[[i]]
         quad_SigmaY <- quad_SigmaY+t(blocks_Y[[i]]-blocks_muhat[[i]])%*%
           blocks_SigmaYinv[[i]]%*%(blocks_Y[[i]]-blocks_muhat[[i]]) 
-    #    show(quad_SigmaY)
+        #    show(quad_SigmaY)
       }
       blocks_det <- purrr::map_dbl(blocks_XSigmae,~det(.))
       logSigmaYdet <- sum(log(blocks_det))
@@ -286,8 +249,8 @@ likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA){
                   blocks_XX[[i]]%*%blocks_C[[i]])%*%t(blocks_C[[i]])%*%
           blocks_XX[[i]]%*%blocks_SigmaYinv_old
         logSigmaYdet <- logSigmaYdet+log(det(blocks_Cstar[[i]]+
-        t(blocks_C[[i]])%*%blocks_XX[[i]]%*%blocks_SigmaYinv%*%
-          blocks_XX[[i]]%*%blocks_C[[i]]))-
+                                               t(blocks_C[[i]])%*%blocks_XX[[i]]%*%blocks_SigmaYinv%*%
+                                               blocks_XX[[i]]%*%blocks_C[[i]]))-
           log(det(blocks_Cstar[[i]]))
         quad_SigmaY <- quad_SigmaY+
           t(blocks_Y[[i]]-blocks_muhat[[i]])%*%blocks_SigmaYinv%*%

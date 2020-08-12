@@ -1,154 +1,89 @@
 library(raster) 
 library(tidyverse)
 library(sf)
+library(stars)
+library(gtools)
+library(rlang)
 
 gen_resolution <- function(dataset_file){
-load(datasetfile) # data loading
-#hh <- hh[hh$lat>=26 & hh$lat<=70 & hh$lon>=235 & hh$lon<=290,]
-  hh <- hh[hh$lat>=20 & hh$lat<=40 & hh$lon>=240 & hh$lon<=265,]  
-# parameters of the raster using the spatial structure
-bordes <- bbox(hh)
-crsglobal <- CRS('+proj=longlat +datum=WGS84')
-
-
-# MRA definitions: levels and partitions (4 levels and 
-# 4 partitions: default)
-nlevelsMRA <- 4 #Number of MRA levels (7)
-npartitions <- 2
-npartitions_r <- 2
-npartitions_c <- npartitions/npartitions_r
-partitions <- list()
-nc <- nr <- NULL
-nc_n <- nr_n <- NULL
-for(i in 1:nlevelsMRA){
-  partitions[[i]] <- seq(1,npartitions^(i-1))
-  nc[i] <- npartitions_c^(i-1)
-  nr[i] <- npartitions_r^(i-1)
-}
-nc_n <- c(1,rep(npartitions_c,nlevelsMRA-1))
-nr_n <- c(1,rep(npartitions_r,nlevelsMRA-1))
-nn <- length(nc)
-
-f <- function(nc, nr, partitions, nc_n, nr_n, bordes, crsglobal){
-  globraster <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
-                       ymx=bordes[4],val=partitions,
-                       crs=crsglobal,ncols=nc,nrows=nr)
-  indicesreg     <- raster::extract(globraster,hh, 
-                                    cellnumbers=TRUE)[,1]
-  cellloc.reg    <- rowColFromCell(globraster,indicesreg)
-  indicesregtemp <- as.data.frame(cellloc.reg) %>% 
-    mutate(rown = row%%nr_n,coln=col%%nc_n) %>% 
-    mutate(rown=ifelse(rown==0,nr_n,rown),
-           coln=ifelse(coln==0,nc_n,coln))
-  indexmatrix <- as.data.frame(expand.grid(1:nr_n,1:nc_n))
-  indexmatrix <- indexmatrix %>% dplyr::select(rown=Var1,coln=Var2)%>%
-    mutate(celln=1:(nr_n*nc_n))
-  indicesregK <- as.numeric((indicesregtemp %>% 
-                 left_join(indexmatrix,by = c('rown','coln')) %>%
-                 dplyr::select(celln))$celln)
-  return(indicesregK)
-}
-indicesregK <- pmap(list(nc, nr, partitions,nc_n,nr_n ), f,
-            bordes = bordes, crsglobal = crsglobal)
-
-# Indexing by cell (iK...)
-indicesregK   <- data.frame(matrix(unlist(indicesregK), ncol=nn,
-                                   nrow=length(indicesregK[[1]])))
-names(indicesregK) <- as.character(unlist(lapply(1:nn,
-                                   function(i)paste0("iK",i))))
-
-hh <- st_as_sf(hh)
-# Indexing by partition (iP...)
-
-indicesW.make <- function(indice){
-  combs <- indicesregK[,1:indice] %>% tidyr::crossing() %>%
-    distinct() %>% arrange_all() %>%
-    mutate(ttemp=1:n())
-  colnames(combs) <- c(paste0('iK',1:indice),paste0('iP',indice))
-  return(combs)
-}
-
-indicesW <- purrr::map(1:nlevelsMRA,indicesW.make)
-
-# Everything together: iP and iK
-tablaindicesW <- indicesW %>% reduce(left_join)
-
-#Update of data indexing with iP
-indicesregK <- indicesregK %>% left_join(tablaindicesW) %>%
-  mutate(indice_m=1:n())
-#Update of spatial structure with data indexing
-hh <- hh %>% bind_cols(indicesregK)
-#Random generation of MRA knots 
-generate_samples <- function(data,knots){ 
-  suppressMessages(st_sample(st_as_sfc(st_bbox(data)), size = knots))
-}
-
-library(rlang)
-# Tomado de https://www.natedayta.com/2018/03/04/split-a-tidyverse-incarnation-of-split/
-split_ <- function(data, ..., .drop = TRUE) {
-  vars <- ensyms(...)
-  vars <- purrr::map(vars, function(x) eval_tidy(x, data))
-  split(data, vars, drop = .drop)
-}
-
-#Random generation of MRA knots and partition identification 
-create_knots <- function(partition, knots){
-  vv <-  c(quo('iP1'),quo('iP2'),quo('iP3'),quo('iP4'),quo('iP5'),
-           quo('iP6'),quo('iP7'),quo('iP8'),quo('iP9'),quo('iP10'))
-  ##Lo de arriba definitivamente debe mejorarse
-  points <- purrr::map(hh %>%split_(!!vv[[partition]]), 
-                         generate_samples,knots)
-  points <- imap(points, 
-                   ~st_sf(tibble(iP = 
-                  rep(.y, length(.x))),geometry = .x))
-  points <- do.call(rbind, points)
-  points <- points %>% group_by(iP) %>% summarise()
-#  points %>% mutate(n_points = map_int(geometry, nrow))
-  return(points)
-}
-
-# Number of knots according to Katzfuss et al, 2017.
-# nknots <- floor(dim(dataset)[1]/(4^4))+1
-nknots <- 10
-show(paste0('El numero de nodos X particion es: ',nknots))
-# Random generation of knots per MRA level
-
-order.knots <- function(indice,nknots){
-  knots<-create_knots(indice,nknots)
-  knots$geometry <- st_cast(knots$geometry,'MULTIPOINT')
-  knots_tb <- as.data.frame(st_coordinates(knots))
-  colnames(knots_tb) <- c('lon','lat',paste0('iP',indice))
-  return(knots_tb)
-}
-
-knots_tb <- purrr::map(1:(nlevelsMRA-1),order.knots,nknots=nknots)
-
-
-# iP hierarchy: needed to compute the loglikelihood recursively 
-
-knots.parent <- function(indice){
-  if(indice==1){
-    knots_tb[[indice]] <- knots_tb[[indice]] %>% mutate(indice_m=1:n())
-    knots_tb[[indice]] <- st_as_sf(knots_tb[[indice]],coords = c(1,2))
-  }else{
-    if(indice==nlevelsMRA){
-      knots_tb[[indice]] <- hh
-    }else{
-      tablapadres <- tablaindicesW %>% dplyr::select(starts_with('iP')) %>%
-        dplyr::select(num_range('iP',1:indice))%>% distinct() 
-      knots_tb[[indice]] <- knots_tb[[indice]] %>% left_join(tablapadres) %>% mutate(indice_m=1:n())
-      knots_tb[[indice]] <- st_as_sf(knots_tb[[indice]],coords = c(1,2))
+  load(datasetfile) # data loading
+  hh <- hh[hh$lat>=20 & hh$lat<=40 & hh$lon>=240 & hh$lon<=265,]
+  bordes <- bbox(hh)
+  hh_sf <- st_as_sf(hh)
+  crsglobal <- CRS('+proj=longlat +datum=WGS84')
+  
+  nCov <- 6
+  
+  nlevelsMRA <- 3 #Number of MRA levels (M)
+  npartitions <- 4 #Number of partitions per level (J)
+  nknots <- 10
+  npartitions_r <- 2 
+  npartitions_c <- npartitions/npartitions_r
+  partitions <- list()
+  nc <- nr <- NULL
+  nc_n <- nr_n <- NULL
+  for(i in 0:nlevelsMRA){
+    partitions[[i+1]] <- seq(1,npartitions^i)
+    nc[i+1] <- npartitions_c^i
+    nr[i+1] <- npartitions_r^i
+  }
+  nc_n <- c(1,rep(npartitions_c,nlevelsMRA-1))
+  nr_n <- c(1,rep(npartitions_r,nlevelsMRA-1))
+  nn <- length(nc)
+  
+  globraster <- list()
+  Qlist_sf <- list()
+  Qlist_sp <- list()
+  for(i in 0:nlevelsMRA){
+    globraster[[i+1]] <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
+                         ymx=bordes[4],val=partitions[[i+1]],
+                         crs=crsglobal,ncols=nc[i+1],nrows=nr[i+1])
+    
+    globraster_stars <- st_as_stars(globraster[[i+1]])
+    globraster_sf <- st_as_sf(globraster_stars)
+    
+    Qlist_sf[[i+1]] <- do.call(rbind,purrr::map(.x = partitions[[i+1]],function(l) st_sf(st_sample(globraster_sf %>% filter(layer==l),size = nknots))))
+    Qlist_sp[[i+1]] <- as_Spatial(Qlist_sf[[i+1]])
+  }
+  
+  for(i in 0:nlevelsMRA){
+    indiceshh     <- raster::extract(globraster[[i+1]],hh,cellnumbers=TRUE)[,1]
+    hh_sf <- hh_sf %>% mutate(!!paste0('R',i+1):=indiceshh)
+    for(j in 0:nlevelsMRA){
+      indiceshh <- raster::extract(globraster[[i+1]],Qlist_sp[[j+1]],cellnumbers=TRUE)[,1]
+      Qlist_sf[[j+1]] <- Qlist_sf[[j+1]] %>% mutate(!!paste0('R',i+1):=indiceshh)
     }
   }
-  return(knots_tb[[indice]])
+  Qlist_sf[[nlevelsMRA+2]] <- hh_sf 
+  
+  for(i in 1:(nlevelsMRA+1)) {colnames(Qlist_sf[[i]])[1]  <- 'geometry';st_geometry(Qlist_sf[[i]]) <- 'geometry'}
+  
+#  comparacion_grupos <- combinations(n = nlevelsMRA+2, r = 2, repeats.allowed = F, v = 1:(nlevelsMRA+2))
+#  comparacion_grupos <- rbind(cbind(1:(1+nlevelsMRA),1:(1+nlevelsMRA)),comparacion_grupos)
+Tm_matrices <- list()
+TSm_matrices <- list()
+for(m in 0:nlevelsMRA){
+  Tm_matrices[[m+1]] <- list()
+  TSm_matrices[[m+1]] <- list()
+  for(l in 0:m){
+    Tm_matrices[[m+1]][[l+1]] <- list()
+    if(l==0){
+      k <- -1
+      Tm_matrices[[m+1]][[l+1]][[k+2]] <- 1
+      TSm_matrices[[m+1]][[k+2]] <- 1
+    }else{
+      for(k in 0:(l-1)){
+        Tm_matrices[[m+1]][[l+1]][[k+2]] <- 0+outer(unlist(st_drop_geometry(Qlist_sf[[m+1]] %>% dplyr::select(!!paste0('R',k+1)))),
+                                                    unlist(st_drop_geometry(Qlist_sf[[l+1]] %>% dplyr::select(!!paste0('R',k+1)))),"==")
+        Tm_matrices[[m+1]][[l+1]][[k+2]] <- Matrix(kronecker(Tm_matrices[[m+1]][[l+1]][[k+2]],matrix(rep(1,nCov*nCov),nrow = nCov)))
+        TSm_matrices[[m+1]][[k+2]] <- 0+outer(unlist(st_drop_geometry(Qlist_sf[[nlevelsMRA+2]] %>% dplyr::select(!!paste0('R',k+1)))),
+                                              unlist(st_drop_geometry(Qlist_sf[[m+1]] %>% dplyr::select(!!paste0('R',k+1)))),"==") 
+        TSm_matrices[[m+1]][[k+2]] <- Matrix(kronecker(TSm_matrices[[m+1]][[k+2]],matrix(rep(1,nCov*nCov),nrow = nCov)))
+      }
+    }
+  }
 }
 
-knotsMRA <- purrr::map(1:nlevelsMRA,knots.parent)
-
-## remove all values that are duplicated
-rm(list=ls()[! ls() %in% c("bordes","indicesW", "knotsMRA",
-                           "nn",'hh')])
-return(list(bordes,indicesW,knotsMRA,nn,hh))
+  return(list(Tm_matrices,TSm_matrices,Qlist_sf,nlevelsMRA))
 }
-
-
+  
