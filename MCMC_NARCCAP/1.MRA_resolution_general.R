@@ -5,14 +5,13 @@ library(stars)
 library(gtools)
 library(rlang)
 
-gen_resolution <- function(dataset_file){
+gen_resolution <- function(dataset_file,nCov_v){
   load(datasetfile) # data loading
   hh <- hh[hh$lat>=20 & hh$lat<=40 & hh$lon>=240 & hh$lon<=265,]
   bordes <- bbox(hh)
   hh_sf <- st_as_sf(hh)
   crsglobal <- CRS('+proj=longlat +datum=WGS84')
   
-  nCov <- 6
   
   nlevelsMRA <- 3 #Number of MRA levels (M)
   npartitions <- 4 #Number of partitions per level (J)
@@ -75,10 +74,10 @@ for(m in 0:nlevelsMRA){
       for(k in 0:(l-1)){
         Tm_matrices[[m+1]][[l+1]][[k+2]] <- 0+outer(unlist(st_drop_geometry(Qlist_sf[[m+1]] %>% dplyr::select(!!paste0('R',k+1)))),
                                                     unlist(st_drop_geometry(Qlist_sf[[l+1]] %>% dplyr::select(!!paste0('R',k+1)))),"==")
-        Tm_matrices[[m+1]][[l+1]][[k+2]] <- Matrix(kronecker(Tm_matrices[[m+1]][[l+1]][[k+2]],matrix(rep(1,nCov*nCov),nrow = nCov)))
+        Tm_matrices[[m+1]][[l+1]][[k+2]] <- Matrix(kronecker(Tm_matrices[[m+1]][[l+1]][[k+2]],matrix(rep(1,nCov_v*nCov_v),nrow = nCov_v)))
         TSm_matrices[[m+1]][[k+2]] <- 0+outer(unlist(st_drop_geometry(Qlist_sf[[nlevelsMRA+2]] %>% dplyr::select(!!paste0('R',k+1)))),
                                               unlist(st_drop_geometry(Qlist_sf[[m+1]] %>% dplyr::select(!!paste0('R',k+1)))),"==") 
-        TSm_matrices[[m+1]][[k+2]] <- Matrix(kronecker(TSm_matrices[[m+1]][[k+2]],matrix(rep(1,nCov*nCov),nrow = nCov)))
+        TSm_matrices[[m+1]][[k+2]] <- Matrix(kronecker(TSm_matrices[[m+1]][[k+2]],matrix(rep(1,nCov_v*nCov_v),nrow = nCov_v)))
       }
     }
   }

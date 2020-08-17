@@ -21,15 +21,18 @@ if(length(args)==0){
 # model<-'SVC', "SVI"
 # analysis<-"M1: likelihood", "M2: FSA", "M3: MRA2"
 
-source("1.MRA_resolution_general_temp.R")
+source("1.MRA_resolution_general.R")
 source('covariances.R')
-source('likelihoodK_general_temp.R')
+source('likelihoodK_general.R')
 library(MCMCpack)
 library(truncdist)
 library(invgamma)
 library(Matrix)
 
-aa<-gen_resolution(datasetfile)
+nCov_f <- 6
+nCov_v <- 1
+
+aa<-gen_resolution(datasetfile,nCov_v)
 Tm <- aa[[1]]
 TSm <- aa[[2]]
 Qlist <- aa[[3]]
@@ -43,7 +46,7 @@ hh <- Qlist[[nn+2]]
 
 phi <- 0.9
 nu <- 1
-beta <- c(0,rep(1,5))
+beta <- c(0,rep(1,nCov_f-1))
 
 
 startvalue <- c(phi,nu,beta)
@@ -54,9 +57,16 @@ npar <- length(startvalue)
 taub <- 1
 taue <- 5
 sigma2 <- 1/taub
-nCov <- length(beta)
-A <- diag(nCov)
-types <- rep('Exponential',length(beta))
+
+A <- diag(nCov_v)
+types <- rep('Exponential',nCov_v)
+
+#Data
+Y <- hh$Y
+X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
+                                    dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
+XR <- X[,c(2)]
+
 ##################
 # L functions    #
 ##################
@@ -74,7 +84,7 @@ f <- function(param) {
                   beta1,sigma2,taue,model,type)
       }else {
         MRA_num <- nn
-        loglike <- likelihoodMRA(nu,phi,beta,A,nCov,taue,model,type, MRA_num)}}
+        loglike <- likelihoodMRA(nu,phi,beta,A,nCov_v,taue,model,type, MRA_num,Y,X,XR)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
   logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
   logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)
