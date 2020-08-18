@@ -28,6 +28,7 @@ library(MCMCpack)
 library(truncdist)
 library(invgamma)
 library(Matrix)
+library(mvtnorm)
 
 nCov_f <- 6
 nCov_v <- 1
@@ -65,7 +66,7 @@ types <- rep('Exponential',nCov_v)
 Y <- hh$Y
 X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
                                     dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
-XR <- X[,c(2)]
+XR <- X[,c(2)]/100
 
 ##################
 # L functions    #
@@ -85,12 +86,11 @@ f <- function(param) {
       }else {
         MRA_num <- nn
         loglike <- likelihoodMRA(nu,phi,beta,A,nCov_v,taue,model,type, MRA_num,Y,X,XR)}}
+  browser()
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
-  logpriorbeta0 <- dnorm(beta0,0,0.5,log=TRUE)
-  logpriorbeta1 <- dnorm(beta1,2,0.5,log=TRUE)
   logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
-  logprior <- logpriorbeta0+logpriorbeta1+
-              logpriorphi+logpriornu
+  logpriorbeta <- dmvnorm(beta,mean = c(0,rep(1,length(beta)-1)),sigma = 0.5*diag(length(beta)),log = T)
+  logprior <- logpriorphi+logpriornu+logpriorbeta
   like <- -(loglike/2) +logprior
   return(as.numeric(like))
 }
@@ -118,9 +118,8 @@ proposalfunction <- function(param,i,th){
   #beta  <- c(th[1]*sd[1]/mu[1])
   Yn <- c(#rgamma(1,shape=alpha[1],scale=beta[1]),
           runif(1,0.8,1),
-          rnorm(1,mu[2],sd[2]),
-          rnorm(1,mu[3],sd[3]),
-          runif(1,0.8,1.20))
+          runif(1,0.8,1.20),
+          rmvnorm(1,mean = mu[-c(1,2)],sigma = diag(mu[-c(1,2)])))
   return(Yn)
   #return(list(Yn,alpha,beta))
 }

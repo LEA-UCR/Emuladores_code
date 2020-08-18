@@ -73,6 +73,7 @@ likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA,Y,X,XR){
   
   quad_SigmaY <- 0
   
+  browser()
   for(k in nMRA:0){
     show(k)
     if(k==nMRA){
