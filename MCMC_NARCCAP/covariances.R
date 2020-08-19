@@ -42,7 +42,7 @@ cExpMat_mult <- function(points_sf1,points_sf2,A,nCov=1,typesCov,range,
   Fun_aug <- function(i){
     matricesCov[[i]] <- cExpMat(points_sf1,points_sf2,typesCov[i],range,
                                 variance=1,nu,alpha,beta)
-    return(as.matrix(kronecker(matricesCov[[i]],Matrix(A[,i]%*%t(A[,i])))))
+    return(as.matrix(kronecker(matricesCov[[i]],Matrix(A[,i]%*%t(A[,i]),sparse = T))))
   }
   #plan(multiprocess)
   #matrices_aug <- future_map(1:nCov,~Fun_aug(.))

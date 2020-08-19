@@ -31,7 +31,7 @@ library(Matrix)
 library(mvtnorm)
 
 nCov_f <- 6
-nCov_v <- 1
+nCov_v <- 5
 
 aa<-gen_resolution(datasetfile,nCov_v)
 Tm <- aa[[1]]
@@ -56,17 +56,17 @@ npar <- length(startvalue)
 
 # fixed
 taub <- 1
-taue <- 5
+taue <- 1
 sigma2 <- 1/taub
 
-A <- diag(nCov_v)
+A <- taub*diag(nCov_v)
 types <- rep('Exponential',nCov_v)
 
 #Data
 Y <- hh$Y
 X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
                                     dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
-XR <- X[,c(2)]/100
+XR <- scale(X[,c(2,3,4,5,6)])
 
 ##################
 # L functions    #
@@ -86,7 +86,6 @@ f <- function(param) {
       }else {
         MRA_num <- nn
         loglike <- likelihoodMRA(nu,phi,beta,A,nCov_v,taue,model,type, MRA_num,Y,X,XR)}}
-  browser()
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
   logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
   logpriorbeta <- dmvnorm(beta,mean = c(0,rep(1,length(beta)-1)),sigma = 0.5*diag(length(beta)),log = T)

@@ -30,23 +30,23 @@ W_maker <- function(nCov){
   }
   
   for(m in 0:nn){
-    show(m)
+    #show(m)
     for(l in 0:m){
       if(l==0){
         k <- 0
         Wlist[[m+1]][[l+1]][[k+1]] <- Matrix(cExpMat_mult(Qlist[[m+1]],
                                                    Qlist[[l+1]],A,nCov,
                                                    types,range=phi,nu=nu, 
-                                                   alpha=acau, beta=bcau))
+                                                   alpha=acau, beta=bcau),sparse = T)
         WSlist[[m+1]][[k+1]] <- Matrix(cExpMat_mult(Qlist[[nn+2]],
                                                     Qlist[[m+1]],A,nCov,
                                                     types,range=phi,nu=nu, 
-                                                    alpha=acau, beta=bcau))
+                                                    alpha=acau, beta=bcau),sparse = T)
       }else{
         Wlist[[m+1]][[l+1]][[1]] <- Matrix(cExpMat_mult(Qlist[[m+1]],
                                                           Qlist[[l+1]],A,nCov,
                                                           types,range=phi,nu=nu, 
-                                                          alpha=acau, beta=bcau))
+                                                          alpha=acau, beta=bcau),sparse = T)
         for(k in 0:(l-1)){
           Wlist[[m+1]][[l+1]][[k+2]] <- (Wlist[[m+1]][[l+1]][[k+1]]-Wlist[[m+1]][[k+1]][[k+1]]%*%solve(Wlist[[k+1]][[k+1]][[k+1]])%*%t(Wlist[[l+1]][[k+1]][[k+1]]))*Tm[[m+1]][[l+1]][[k+2]]
           WSlist[[m+1]][[k+2]] <- (WSlist[[m+1]][[k+1]]-WSlist[[k+1]][[k+1]]%*%solve(Wlist[[k+1]][[k+1]][[k+1]])%*%t(Wlist[[m+1]][[k+1]][[k+1]]))*TSm[[m+1]][[k+2]]
@@ -72,26 +72,22 @@ likelihoodMRA <- function(nu,phi,beta,A,nCov,taue,model,type,nMRA,Y,X,XR){
   B_m <- matrices$B
   
   quad_SigmaY <- 0
-  
-  browser()
   for(k in nMRA:0){
-    show(k)
+    #show(k)
     if(k==nMRA){
       Sigma_w <- B_m[[k+1]]%*%solve(Lambda_m[[k+1]])%*%t(B_m[[k+1]]) 
       XSigmae <- XX%*%Sigma_w%*%t(XX)+(1/taue) * diag(dim(XX)[1])
-      SigmaYinv <- solve(XSigmae)
+      SigmaYinv <- chol2inv(chol(XSigmae))
       logSigmaYdet <- log(det(XSigmae))
     }else{
       SigmaYinv_old <- SigmaYinv
-      SigmaYinv <- SigmaYinv_old - SigmaYinv_old %*% 
-        XX %*% B_m[[k+1]] %*% 
-        solve(Lambda_m[[k+1]]+t(B_m[[k+1]])%*%
-                t(XX) %*% SigmaYinv_old %*%
-                XX %*% B_m[[k+1]])%*%t(B_m[[k+1]]) %*% t(XX) %*% SigmaYinv_old
-      logSigmaYdet <- logSigmaYdet+log(det(Lambda_m[[k+1]]+
-                                             t(B_m[[k+1]])%*%
-                                             t(XX) %*% SigmaYinv_old %*%
-                                             XX %*% B_m[[k+1]]))-
+      XB_m <- XX %*% B_m[[k+1]]
+      YXB_m <- SigmaYinv_old %*% XB_m
+      
+      SigmaYinv <- SigmaYinv_old - YXB_m %*% 
+        solve(Lambda_m[[k+1]]+ t(YXB_m) %*% XB_m) %*% t(YXB_m)
+      
+      logSigmaYdet <- logSigmaYdet+log(det(Lambda_m[[k+1]]+t(YXB_m) %*% XB_m))-
         log(det(Lambda_m[[k+1]]))
       }
   }
