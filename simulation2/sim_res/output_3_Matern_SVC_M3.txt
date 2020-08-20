@@ -1,2 +1,0 @@
-[1] "El numero de nodos X particion es: 10"
-[1] "sim_data/datasetSVCMatern3.Rdata"
