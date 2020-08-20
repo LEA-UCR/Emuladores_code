@@ -15,13 +15,13 @@ gen_resolution <- function(dataset_file,nCov_v){
   
   nlevelsMRA <- 3 #Number of MRA levels (M)
   npartitions <- 4 #Number of partitions per level (J)
-  nknots <- 10
+  nknots <- 10 #Number of knots per partition
   npartitions_r <- 2 
   npartitions_c <- npartitions/npartitions_r
   partitions <- list()
   nc <- nr <- NULL
   nc_n <- nr_n <- NULL
-  for(i in 0:nlevelsMRA){
+  for(i in 0:nlevelsMRA){ # Sequence of partitions per level
     partitions[[i+1]] <- seq(1,npartitions^i)
     nc[i+1] <- npartitions_c^i
     nr[i+1] <- npartitions_r^i
@@ -33,7 +33,7 @@ gen_resolution <- function(dataset_file,nCov_v){
   globraster <- list()
   Qlist_sf <- list()
   Qlist_sp <- list()
-  for(i in 0:nlevelsMRA){
+  for(i in 0:nlevelsMRA){ #Qlist_sf: Random knots per partition block in sf format
     globraster[[i+1]] <- raster(xmn=bordes[1],ymn=bordes[2],xmx=bordes[3],
                          ymx=bordes[4],val=partitions[[i+1]],
                          crs=crsglobal,ncols=nc[i+1],nrows=nr[i+1])
@@ -45,7 +45,7 @@ gen_resolution <- function(dataset_file,nCov_v){
     Qlist_sp[[i+1]] <- as_Spatial(Qlist_sf[[i+1]])
   }
   
-  for(i in 0:nlevelsMRA){
+  for(i in 0:nlevelsMRA){# Knots location on each MRA level
     indiceshh     <- raster::extract(globraster[[i+1]],hh,cellnumbers=TRUE)[,1]
     hh_sf <- hh_sf %>% mutate(!!paste0('R',i+1):=indiceshh)
     for(j in 0:nlevelsMRA){
@@ -59,8 +59,8 @@ gen_resolution <- function(dataset_file,nCov_v){
   
 #  comparacion_grupos <- combinations(n = nlevelsMRA+2, r = 2, repeats.allowed = F, v = 1:(nlevelsMRA+2))
 #  comparacion_grupos <- rbind(cbind(1:(1+nlevelsMRA),1:(1+nlevelsMRA)),comparacion_grupos)
-Tm_matrices <- list()
-TSm_matrices <- list()
+Tm_matrices <- list() #MRA-block modulating function. Formula (2.7) in K&G-2020.
+TSm_matrices <- list() #MRA-block modulating function in the case of S as first argument.
 for(m in 0:nlevelsMRA){
   Tm_matrices[[m+1]] <- list()
   TSm_matrices[[m+1]] <- list()

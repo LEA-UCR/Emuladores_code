@@ -59,7 +59,7 @@ taub <- 1
 taue <- 1
 sigma2 <- 1/taub
 
-A <- taub*diag(nCov_v)
+A <- sigma2*diag(nCov_v)
 types <- rep('Exponential',nCov_v)
 
 #Data

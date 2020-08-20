@@ -15,6 +15,7 @@ corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   return(m)
 }
 
+# Covariance function between sf objects.
 cExpMat <- function(points_sf1,points_sf2,type,range=1,
                     variance=1,nu=1,alpha=1,beta=1){
   coords1 <- st_coordinates(points_sf1$geometry)
@@ -36,6 +37,7 @@ cExpMat <- function(points_sf1,points_sf2,type,range=1,
   return(m)
 }
 
+#Augmented Covariance function (Co-regionalization model)
 cExpMat_mult <- function(points_sf1,points_sf2,A,nCov=1,typesCov,range,
                          nu,alpha,beta){
   matricesCov <- NULL
