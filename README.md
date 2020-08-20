@@ -12,8 +12,6 @@ Contents:
 
 * [Simulation study to compare methods](https://github.com/luisbarboza27/Emuladores_code/tree/master/simulation3)
 
-* [Simulation with different Grids](https://github.com/luisbarboza27/Emuladores_code/tree/master/simulationgrillas)
-
 * [NARCCAP Descriptive Data Analysis](https://github.com/luisbarboza27/Emuladores_code/tree/master/descriptiveNARCCAP)
 
 * [NARCCAP Analysis](https://github.com/luisbarboza27/Emuladores_code/tree/master/MCMC_NARCCAP)
