@@ -1,4 +1,4 @@
-# if you are working local, setwd in simulation2 first!
+# if you are working local, setwd in the working folder first!
 args = commandArgs(trailingOnly=TRUE)
 if(length(args)==0){
   variable_narccap <- 'Temp'
@@ -38,7 +38,6 @@ Tm <- aa[[1]]
 TSm <- aa[[2]]
 Qlist <- aa[[3]]
 nn<-aa[[4]]
-
 hh <- Qlist[[nn+2]]
 
 #### Metropolis Hastings
@@ -48,7 +47,6 @@ hh <- Qlist[[nn+2]]
 phi <- 0.9
 nu <- 1
 beta <- c(0,rep(1,nCov_f-1))
-
 
 startvalue <- c(phi,nu,beta)
 N <- dim(hh)[1]
@@ -65,7 +63,7 @@ types <- rep('Exponential',nCov_v)
 #Data
 Y <- hh$Y
 X <- data.matrix(st_drop_geometry(hh %>% mutate(interc = 1) %>% 
-                                    dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
+                      dplyr::select(interc,TREFHT,OMEGA,PSL,U,V)))
 XR <- scale(X[,c(2,3,4,5,6)])
 
 ##################
@@ -85,10 +83,12 @@ f <- function(param) {
                   beta1,sigma2,taue,model,type)
       }else {
         MRA_num <- nn
-        loglike <- likelihoodMRA(nu,phi,beta,A,nCov_v,taue,model,type, MRA_num,Y,X,XR)}}
+        loglike <- likelihoodMRA(nu,phi,beta,A,nCov_v,
+                                 taue,model,type, MRA_num,Y,X,XR)}}
   logpriorphi   <- dunif(phi,0.80,1.00,log=TRUE) 
   logpriornu    <- dunif(nu,0.80,1.20,log=TRUE) 
-  logpriorbeta <- dmvnorm(beta,mean = c(0,rep(1,length(beta)-1)),sigma = 0.5*diag(length(beta)),log = T)
+  logpriorbeta  <- dmvnorm(beta,mean = c(0,rep(1,length(beta)-1)),
+                           sigma = 0.5*diag(length(beta)),log = T)
   logprior <- logpriorphi+logpriornu+logpriorbeta
   like <- -(loglike/2) +logprior
   return(as.numeric(like))
@@ -206,4 +206,5 @@ abline(h = 1, col="red" )
 
 dev.off()
 
-save(chain, file=paste0("sim_res/chain",analysis,model,type,'NARCCAP',".Rdata"))
+save(chain, file=paste0("sim_res/chain",
+    analysis,model,type,'NARCCAP',".Rdata"))

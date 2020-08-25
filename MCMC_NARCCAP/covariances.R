@@ -6,7 +6,8 @@ library(furrr)
 corrMaternduo <- function(points_sf1,points_sf2,kappa, variance, nu=1) {
   coords1 <- st_coordinates(points_sf1$geometry)
   coords2 <- st_coordinates(points_sf2$geometry)
-  m <- ifelse(identical(coords1,coords2)==TRUE,list(as.matrix(dist(coords1,diag = T,upper = T))),
+  m <- ifelse(identical(coords1,coords2)==TRUE,
+              list(as.matrix(dist(coords1,diag = T,upper = T))),
               list(as.matrix(pdist(coords1,coords2))))
   m <- variance*exp((1-nu)*log(2) + nu*log(kappa*m[[1]])-
                       lgamma(nu))*besselK(m[[1]]*kappa, nu)
@@ -44,7 +45,8 @@ cExpMat_mult <- function(points_sf1,points_sf2,A,nCov=1,typesCov,range,
   Fun_aug <- function(i){
     matricesCov[[i]] <- cExpMat(points_sf1,points_sf2,typesCov[i],range,
                                 variance=1,nu,alpha,beta)
-    return(as.matrix(kronecker(matricesCov[[i]],Matrix(A[,i]%*%t(A[,i]),sparse = T))))
+    return(as.matrix(kronecker(matricesCov[[i]],
+           Matrix(A[,i]%*%t(A[,i]),sparse = T))))
   }
   #plan(multiprocess)
   #matrices_aug <- future_map(1:nCov,~Fun_aug(.))
