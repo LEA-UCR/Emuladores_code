@@ -1,0 +1,159 @@
+Pseudo code
+================
+8/25/2020
+
+# Lista de funciones
+
+  - [gen\_resolution](#fun1)
+  - [run\_metropolis (f, proposal)](fun2)
+  - [likelihoodK\_general (likelihoodGaussian + likelihoodMRA)](fun3)
+  - [corrMaternduo + cExpMat + cExpMat\_mult](fun4)
+
+## <a id="fun1" /> gen\_resolution
+
+Read geolocated data
+
+Generate empty objects: MRA levels, partitions (r and c) and knots
+
+For loop to define sequence of partitions \(D_{j_1,j_2, ...., j_m}\) per
+MRA level
+
+For loop to create Qlist\_sf: Random knots per partition block in sf
+format
+
+For loop to asign indices to the knots’ location on each MRA level
+
+For loop to create Tm and TSs MRA-block modulating functions. Formula
+(2.7) in
+K\&G-2020:
+
+``` 
+  - $Tm(s_1,s_2)=1$ if $s_1$ and $s_2$ are in the same region $D_{j_1,j_2, ...., j_m}$
+  
+  - Same modulating function in the case of S as first argument.
+```
+
+Output: Tm\_matrices,TSm\_matrices,Qlist\_sf,nlevelsMRA
+
+## <a id="fun2" /> run\_metropolis
+
+Initialize chains with startvalue
+
+Calculate log likelihood for starting values
+
+for iteration = 1,M do
+
+  - Calculate proposal values with starting values
+
+  - Calculate log likelihood for proposal values
+
+  - Calculate min(0, probab (log likelihood ratio: proposal/current))
+    
+    if (log(runif(1)) \<= probab) do
+    
+    ``` 
+      Assign proposal to the chain list
+    
+      Assign proposal log likelihood to current log likelihood
+    ```
+    
+    else
+    
+    ``` 
+      Assign current to the chain list
+    ```
+
+Output: chain
+
+## <a id="fun3" /> likelihoodK\_general
+
+  - Gaussian: SVC and Gaussian Process
+    options.
+    
+    ``` 
+      $log(det(XX%*%Sigma%*%t(XX)+(1/taue)*diag(dim(Sigma)[1])))+t(Y-muhat)%*%Sigmainv%*%(Y-muhat)$
+    ```
+
+  - MRA: SVC and Gaussian Process options.
+
+<!-- end list -->
+
+1.  Wmaker:
+    
+    ``` 
+     Construct empty W matrices according to K&G-2020
+    
+     for m = 0,nn do
+    
+         for l = 0,m
+    
+             if l==0 do
+    
+               Formulas 3.10 and 3.11 of K&G-2020
+    
+               WSlist (two levels)
+    
+             else 
+    
+               Formulas 3.10 and 3.11 of K&G-2020
+    
+               WSlist (two levels)
+    
+     output: Lambda_list, B=B_list
+    ```
+
+2.  likelihood MRA:
+    
+    Define design matrix as a block diagonal
+    
+    Define augmented design matrix (only spatially-dependent covariates)
+    
+    Calculate mean of Y
+    
+    Initialize all W matrices (Precision matrix of MRA basis and
+    projection matrix of observations on the knot space (Q))
+    
+    for k nMRA:0 do
+    
+    if k==nMRA do
+    
+    ``` 
+     Sigma_w <- B_m[[k+1]]%*%solve(Lambda_m[[k+1]])%*%t(B_m[[k+1]])
+    
+     XSigmae <- XX%*%Sigma_w%*%t(XX)+(1/taue) * diag(dim(XX)[1])
+    
+     SigmaYinv <- chol2inv(chol(XSigmae)) 
+    
+     logSigmaYdet <- log(det(XSigmae)) 
+    ```
+    
+    else
+    
+    ``` 
+     SigmaYinv_old <- SigmaYinv
+    
+     XB_m <- XX %*% B_m[[k+1]]
+    
+     YXB_m <- SigmaYinv_old %*% XB_m
+    
+     SigmaYinv <- SigmaYinv_old - YXB_m %*% 
+    
+     solve(Lambda_m[[k+1]]+ t(YXB_m) %*% XB_m) %*% t(YXB_m)
+    
+     logSigmaYdet <- logSigmaYdet+log(det(Lambda_m[[k+1]]+t(YXB_m) %*% XB_m))-
+     log(det(Lambda_m[[k+1]]))
+    ```
+
+Output -2 log likelihood:
+
+    -2*logSigmaYdet+t(Y-muhat)%*%SigmaYinv%*%(Y-muhat) 
+
+## <a id="fun4" /> covariances
+
+corrMaternduo: formula from scratch (Matern only)
+
+cExpMat: Covariance function between sf objects (Exponential, Matern and
+Cauchy)
+
+cExpMat\_mult: Augmented cExpMat Covariance function (Co-regionalization
+model)

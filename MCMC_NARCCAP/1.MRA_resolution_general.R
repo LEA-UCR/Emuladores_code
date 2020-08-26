@@ -32,6 +32,7 @@ gen_resolution <- function(dataset_file,nCov_v){
     nc[i+1] <- npartitions_c^i
     nr[i+1] <- npartitions_r^i
   }
+  
   nc_n <- c(1,rep(npartitions_c,nlevelsMRA-1))
   nr_n <- c(1,rep(npartitions_r,nlevelsMRA-1))
   nn <- length(nc)
@@ -66,6 +67,7 @@ gen_resolution <- function(dataset_file,nCov_v){
                   mutate(!!paste0('R',i+1):=indiceshh)
     }
   }
+  
   Qlist_sf[[nlevelsMRA+2]] <- hh_sf 
   
   for(i in 1:(nlevelsMRA+1)) {colnames(Qlist_sf[[i]])[1]  <- 
